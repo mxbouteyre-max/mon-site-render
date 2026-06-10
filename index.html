@@ -544,16 +544,14 @@ header {
       <div class="stat">En cours <b class="run" id="stRun">0</b></div>
       <div class="bot-sep"></div>
       <div class="elapsed" id="elapsed"></div>
-      <button class="btn-export show" id="btnExport" onclick="exportXLSX()" style="display:none">
-        ↓ &nbsp;Exporter XLSX
+      <button class="btn-export" id="btnExport" onclick="downloadAll()" style="display:none">
+        ↓ &nbsp;Télécharger les données (.xlsx)
       </button>
     </div>
 
   </main>
 </div>
 
-<!-- SheetJS pour l'export XLSX -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ═══════════════════════════════════════════
 //  CONFIG
@@ -755,6 +753,9 @@ async function runAll() {
       ok++;
       cprint('ok', `✓ ${name} (${res.duration}s)`);
       if (res.stdout.trim()) cprint('out', res.stdout.trim());
+      if (res.new_files && res.new_files.length) {
+        res.new_files.forEach(f => cprint('sys', `  📄 Fichier produit : ${f}`));
+      }
     } else {
       err++;
       cprint('err', `✗ ${name} — ${res.stderr.trim() || res.error || 'code '+res.returncode}`);
@@ -796,6 +797,7 @@ async function callRun(name) {
       stdout: d.stdout || '',
       stderr: d.stderr || '',
       error: d.error || '',
+      new_files: d.new_files || [],
       duration: ((Date.now() - t) / 1000).toFixed(2),
       ts: new Date().toLocaleString('fr-FR')
     };
@@ -803,7 +805,7 @@ async function callRun(name) {
     return {
       script: name, ok: false,
       returncode: -1, stdout: '', stderr: '',
-      error: 'Serveur injoignable', duration: '0',
+      error: 'Serveur injoignable', new_files: [], duration: '0',
       ts: new Date().toLocaleString('fr-FR')
     };
   }
@@ -812,42 +814,16 @@ async function callRun(name) {
 function requestStop() { stopReq = true; }
 
 // ═══════════════════════════════════════════
-//  EXPORT XLSX
+//  TÉLÉCHARGEMENT DES DONNÉES
 // ═══════════════════════════════════════════
-function exportXLSX() {
-  if (!results.length) return;
-
-  const rows = [
-    ['Script', 'Statut', 'Code retour', 'Durée (s)', 'Sortie standard', 'Erreur', 'Horodatage'],
-    ...results.map(r => [
-      r.script,
-      r.ok ? 'Succès' : 'Erreur',
-      r.returncode,
-      r.duration,
-      r.stdout.trim(),
-      (r.stderr || r.error || '').trim(),
-      r.ts
-    ])
-  ];
-
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [
-    {wch:28},{wch:10},{wch:12},{wch:10},{wch:55},{wch:45},{wch:20}
-  ];
-
-  // Style header (gras)
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  for (let C = range.s.c; C <= range.e.c; C++) {
-    const addr = XLSX.utils.encode_cell({r:0, c:C});
-    if (ws[addr]) ws[addr].s = { font: { bold: true } };
-  }
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Résultats');
-
-  const date = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `collecte_${date}.xlsx`, { bookType:'xlsx', type:'binary', codepage: 65001 });
-  cprint('sys', `↓ Export : collecte_${date}.xlsx`);
+async function downloadAll() {
+  cprint('sys', '↓ Préparation du fichier de données…');
+  // Le serveur fusionne tous les CSV/XLSX produits en un seul xlsx
+  const a = document.createElement('a');
+  a.href = `${API}/api/download_all`;
+  a.download = '';
+  a.click();
+  cprint('sys', '↓ Téléchargement lancé');
 }
 
 // ═══════════════════════════════════════════
