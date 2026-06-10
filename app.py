@@ -2,18 +2,42 @@
 app.py — Serveur Flask pour Render
 """
 
-import os
-import sys
-import glob
-import json
-import subprocess
+import os, sys, glob, io, subprocess
 from flask import Flask, jsonify, request, send_from_directory, send_file
-import io
 
 app = Flask(__name__)
 
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS_DIR = os.path.join(BASE_DIR, "code_extraction")
+
+# ── lecture CSV robuste ───────────────────────────────────────────
+def _read_csv_robust(filepath):
+    """Essaie plusieurs séparateurs et encodages jusqu'à trouver le bon."""
+    import pandas as pd, csv as csv_mod
+
+    encodings   = ["utf-8-sig", "utf-8", "latin-1", "cp1252"]
+    separators  = [None, ";", ",", "\t", "|"]   # None = sniff automatique
+
+    last_error = None
+    for enc in encodings:
+        for sep in separators:
+            try:
+                kwargs = dict(encoding=enc, on_bad_lines="skip")
+                if sep is None:
+                    # Laisser pandas sniffer le séparateur
+                    kwargs["sep"] = None
+                    kwargs["engine"] = "python"
+                else:
+                    kwargs["sep"] = sep
+                df = pd.read_csv(filepath, **kwargs)
+                # Rejeter si une seule colonne (séparateur raté)
+                if len(df.columns) > 1 or sep is None:
+                    return df
+            except Exception as e:
+                last_error = e
+                continue
+
+    raise ValueError(f"Impossible de lire le CSV ({last_error})")
 
 # ── route principale ──────────────────────────────────────────────
 @app.route("/")
@@ -44,24 +68,20 @@ def api_run():
     if not os.path.isfile(path):
         return jsonify({"ok": False, "error": f"Script introuvable : {name}"}), 404
 
-    # Snapshot des fichiers présents AVANT l'exécution
     before = set(glob.glob(os.path.join(SCRIPTS_DIR, "*")))
 
     try:
         result = subprocess.run(
             [sys.executable, path],
-            capture_output=True,
-            text=True,
-            cwd=SCRIPTS_DIR,
-            timeout=300
+            capture_output=True, text=True,
+            cwd=SCRIPTS_DIR, timeout=300
         )
     except subprocess.TimeoutExpired:
         return jsonify({"ok": False, "script": name, "error": "Timeout (>5 min)"})
     except Exception as e:
         return jsonify({"ok": False, "script": name, "error": str(e)})
 
-    # Fichiers créés APRÈS l'exécution
-    after  = set(glob.glob(os.path.join(SCRIPTS_DIR, "*")))
+    after     = set(glob.glob(os.path.join(SCRIPTS_DIR, "*")))
     new_files = [
         os.path.basename(f) for f in (after - before)
         if not f.endswith(".py")
@@ -73,13 +93,13 @@ def api_run():
         "returncode": result.returncode,
         "stdout":     result.stdout,
         "stderr":     result.stderr,
-        "new_files":  new_files,   # ← fichiers produits par le script
+        "new_files":  new_files,
     })
 
-# ── liste des fichiers produits (csv/xlsx/json…) ──────────────────
+# ── liste des fichiers produits ───────────────────────────────────
 @app.route("/api/outputs")
 def api_outputs():
-    extensions = (".csv", ".xlsx", ".json", ".tsv", ".parquet")
+    extensions = (".csv", ".xlsx", ".json", ".tsv")
     files = sorted([
         os.path.basename(f)
         for f in glob.glob(os.path.join(SCRIPTS_DIR, "*"))
@@ -87,7 +107,7 @@ def api_outputs():
     ])
     return jsonify({"files": files})
 
-# ── télécharger un fichier produit ────────────────────────────────
+# ── télécharger un fichier individuel ────────────────────────────
 @app.route("/api/download/<filename>")
 def api_download(filename):
     if ".." in filename or "/" in filename or "\\" in filename:
@@ -97,7 +117,7 @@ def api_download(filename):
         return jsonify({"error": "Fichier introuvable"}), 404
     return send_file(path, as_attachment=True, download_name=filename)
 
-# ── télécharger TOUS les fichiers produits fusionnés en un xlsx ───
+# ── télécharger TOUS les fichiers fusionnés en un xlsx ───────────
 @app.route("/api/download_all")
 def api_download_all():
     try:
@@ -105,6 +125,7 @@ def api_download_all():
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment
         from openpyxl.utils import get_column_letter
+        from datetime import datetime
     except ImportError:
         return jsonify({"error": "pandas/openpyxl non installés"}), 500
 
@@ -117,29 +138,27 @@ def api_download_all():
     if not files:
         return jsonify({"error": "Aucun fichier de données trouvé"}), 404
 
-    wb = Workbook()
-    wb.remove(wb.active)  # supprime la feuille vide par défaut
-
+    wb          = Workbook()
+    wb.remove(wb.active)
     header_font  = Font(bold=True, color="FFFFFF", size=11)
     header_fill  = PatternFill("solid", start_color="1F4E79")
     center_align = Alignment(horizontal="center", vertical="center")
 
     for filepath in files:
+        # Nom de feuille max 31 chars
         sheet_name = os.path.basename(filepath)
-        # Nom de feuille : sans extension, max 31 chars (limite Excel)
-        for ext in (".csv", ".xlsx", ".tsv"):
+        for ext in extensions:
             sheet_name = sheet_name.replace(ext, "")
         sheet_name = sheet_name[:31]
 
         try:
-            if filepath.endswith(".csv"):
-                df = pd.read_csv(filepath, encoding="utf-8-sig")
-            elif filepath.endswith(".tsv"):
-                df = pd.read_csv(filepath, sep="\t", encoding="utf-8-sig")
-            else:
+            if filepath.endswith(".xlsx"):
                 df = pd.read_excel(filepath)
+            elif filepath.endswith(".tsv"):
+                df = pd.read_csv(filepath, sep="\t", encoding="utf-8-sig", on_bad_lines="skip")
+            else:
+                df = _read_csv_robust(filepath)
         except Exception as e:
-            # Crée une feuille d'erreur plutôt que de planter
             ws = wb.create_sheet(sheet_name)
             ws["A1"] = f"Erreur de lecture : {e}"
             continue
@@ -149,8 +168,8 @@ def api_download_all():
         # En-têtes
         for col_idx, col_name in enumerate(df.columns, 1):
             cell = ws.cell(row=1, column=col_idx, value=str(col_name))
-            cell.font  = header_font
-            cell.fill  = header_fill
+            cell.font      = header_font
+            cell.fill      = header_fill
             cell.alignment = center_align
 
         # Données
@@ -158,7 +177,7 @@ def api_download_all():
             for col_idx, value in enumerate(row, 1):
                 ws.cell(row=row_idx, column=col_idx, value=value)
 
-        # Largeur auto des colonnes
+        # Largeur auto
         for col_idx, col_name in enumerate(df.columns, 1):
             max_len = max(
                 len(str(col_name)),
@@ -166,7 +185,6 @@ def api_download_all():
             )
             ws.column_dimensions[get_column_letter(col_idx)].width = min(max_len + 4, 60)
 
-        # Freeze la ligne d'en-tête
         ws.freeze_panes = "A2"
 
     if not wb.sheetnames:
@@ -176,7 +194,6 @@ def api_download_all():
     wb.save(buf)
     buf.seek(0)
 
-    from datetime import datetime
     date_str = datetime.now().strftime("%Y-%m-%d")
     return send_file(
         buf,
