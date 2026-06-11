@@ -44,6 +44,13 @@ def _read_csv_robust(filepath):
 def index():
     return send_from_directory(".", "index.html")
 
+
+
+
+@app.route("/excel-merger.html")
+def excel_merger():
+    return send_from_directory(".", "excel-merger.html")    
+
 # ── liste des scripts ─────────────────────────────────────────────
 @app.route("/api/scripts")
 def api_scripts():
