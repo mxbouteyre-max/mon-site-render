@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fusion Excel — Optique</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f4f3ef;
+  --card: #ffffff;
+  --card2: #f9f8f5;
+  --border: #e5e3dd;
+  --border-strong: #ccc9c0;
+  --text: #18181b;
+  --text2: #71717a;
+  --text3: #a1a1aa;
+  --green: #16a34a;
+  --green-bg: #f0fdf4;
+  --green-border: #bbf7d0;
+  --amber: #d97706;
+  --amber-bg: #fffbeb;
+  --amber-border: #fde68a;
+  --blue: #2563eb;
+  --blue-bg: #eff6ff;
+  --blue-border: #bfdbfe;
+  --r: 10px;
+  --r2: 14px;
+  --mono: ui-monospace, 'Cascadia Code', monospace;
+  --sans: ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+/* ── HEADER ── */
+.topbar {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+.logo {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.topbar-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+}
+.topbar-sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin-left: 2px;
+}
+
+/* ── PROGRESS BAR ── */
+.progress-wrap {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+}
+.progress-steps {
+  display: flex;
+  max-width: 780px;
+  margin: 0 auto;
+}
+.p-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 8px;
+  position: relative;
+  cursor: default;
+  transition: opacity 0.2s;
+}
+.p-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 22px;
+  left: calc(50% + 18px);
+  right: calc(-50% + 18px);
+  height: 2px;
+  background: var(--border);
+  transition: background 0.3s;
+}
+.p-step.done:not(:last-child)::after { background: var(--green); }
+.p-step.active:not(:last-child)::after { background: var(--border); }
+
+.p-circle {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 1;
+  transition: background 0.2s, color 0.2s;
+  border: 2px solid var(--border);
+}
+.p-step.active .p-circle {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px var(--green-bg);
+}
+.p-step.done .p-circle {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+.p-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.3;
+  transition: color 0.2s;
+}
+.p-step.active .p-label { color: var(--green); }
+.p-step.done .p-label { color: var(--text2); }
+
+/* ── MAIN LAYOUT ── */
+.main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 20px 0;
+}
+
+/* ── STEP CARDS ── */
+.step-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: opacity 0.3s, transform 0.3s;
+}
+.step-card.locked {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.step-card.locked .step-head { cursor: default; }
+
+.step-head {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.step-num {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--border-strong);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  flex-shrink: 0;
+}
+.step-card.active-card .step-num {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.step-card.done-card .step-num {
+  background: var(--green-bg);
+  border-color: var(--green-border);
+  color: var(--green);
+}
+.step-card.done-card .step-num::before { content: '✓'; }
+.step-card.done-card .step-num > span { display: none; }
+
+.step-title-group { flex: 1; }
+.step-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.step-desc {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.4;
+}
+.step-summary {
+  font-size: 12px;
+  color: var(--green);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.step-body {
+  padding: 0 24px 24px;
+  border-top: 1px solid var(--border);
+  margin-top: 0;
+}
+.step-body-inner { padding-top: 20px; }
+
+/* ── DROP ZONES ── */
+.drop-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.drop-arrow {
+  font-size: 20px;
+  color: var(--text3);
+  text-align: center;
+}
+.dropzone {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--r2);
+  padding: 28px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+  background: var(--card2);
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.dropzone input[type=file] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+}
+.dropzone:hover, .dropzone.over {
+  border-color: var(--green);
+  background: var(--green-bg);
+}
+.dropzone.loaded {
+  border-style: solid;
+  border-color: var(--green);
+  background: var(--green-bg);
+}
+.dz-role {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text3);
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+.dz-role.master { color: var(--blue); background: var(--blue-bg); border-color: var(--blue-border); }
+.dz-role.update { color: var(--amber); background: var(--amber-bg); border-color: var(--amber-border); }
+.dz-icon { font-size: 26px; }
+.dz-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.dz-sub { font-size: 12px; color: var(--text2); }
+.dz-file {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--green);
+  word-break: break-all;
+  max-width: 180px;
+}
+.dz-stats { font-size: 11px; color: var(--text2); }
+
+/* SHEET TABS */
+.sheet-area { margin-top: 12px; }
+.sheet-area-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+.sheet-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.sheet-tab {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border-strong);
+  background: var(--card2);
+  color: var(--text2);
+  transition: all 0.15s;
+}
+.sheet-tab.active { background: var(--green); color: #fff; border-color: var(--green); }
+
+/* ── KEY SELECTOR ── */
+.key-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: end;
+}
+.key-equals {
+  font-size: 22px;
+  color: var(--text3);
+  padding-bottom: 8px;
+  text-align: center;
+}
+.fl { display: flex; flex-direction: column; gap: 6px; }
+.fl label { font-size: 12px; font-weight: 600; color: var(--text2); }
+select {
+  padding: 9px 12px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r);
+  background: var(--card2);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--mono);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2371717a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+  transition: border-color 0.15s;
+}
+select:focus { border-color: var(--green); }
+
+.match-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--card2);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+}
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.chip-g { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.chip-a { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+.chip-z { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
+
+/* ── COL PICKER ── */
+.col-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.col-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  overflow: hidden;
+}
+.col-panel-head {
+  padding: 10px 14px;
+  background: var(--card2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.col-panel-title { font-size: 12px; font-weight: 700; color: var(--text); }
+.col-panel-file { font-family: var(--mono); font-size: 10px; color: var(--text2); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-panel-actions {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  background: #fff;
+}
+.lbtn {
+  font-size: 11px;
+  color: var(--green);
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.col-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.col-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+}
+.col-row:hover { background: var(--card2); }
+.col-row.sel { background: var(--green-bg); }
+.col-cb {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border-strong);
+  background: #fff;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  color: transparent;
+  transition: all 0.1s;
+}
+.col-row.sel .col-cb {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.col-cname {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.col-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.tag-main { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
+.tag-upd { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.tag-new { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+
+/* ── LEGEND ── */
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text2);
+  padding: 12px 0 16px;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.ldot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* ── TABLE ── */
+.tbl-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  overflow: auto;
+  max-height: 360px;
+}
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th {
+  position: sticky; top: 0;
+  background: var(--card2);
+  padding: 9px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+thead th.h-new { color: var(--amber); }
+thead th.h-upd { color: var(--green); }
+tbody td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+tbody tr:last-child td { border: none; }
+tbody tr:hover td { background: var(--card2); }
+td.td-upd { background: rgba(22,163,74,0.08); color: var(--green); font-weight: 600; }
+td.td-new { background: rgba(217,119,6,0.07); color: var(--amber); font-weight: 500; }
+td.td-added { background: rgba(37,99,235,0.05); }
+
+.tbl-note { font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+/* ── BUTTONS ── */
+.btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px;
+  border-radius: var(--r);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--green); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #15803d; }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border-strong); }
+.btn-ghost:hover:not(:disabled) { background: var(--card2); }
+.btn-export { background: #1d4ed8; color: #fff; font-size: 14px; padding: 12px 28px; }
+.btn-export:hover:not(:disabled) { background: #1e40af; }
+
+/* ── CALLOUT ── */
+.callout {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 16px;
+  border-radius: var(--r);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.callout-info { background: var(--blue-bg); border: 1px solid var(--blue-border); color: #1e40af; }
+.callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── STATS SUMMARY ── */
+.stats-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.stat-box {
+  flex: 1; min-width: 120px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 12px 16px;
+  text-align: center;
+}
+.stat-num { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+.stat-num.g { color: var(--green); }
+.stat-num.a { color: var(--amber); }
+.stat-num.b { color: var(--blue); }
+.stat-lbl { font-size: 11px; color: var(--text2); margin-top: 4px; }
+
+/* ── OPTIONS PANEL ── */
+.options-panel {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.options-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 2px;
+}
+.option-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.option-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.toggle-track {
+  width: 36px; height: 20px;
+  border-radius: 10px;
+  background: var(--border-strong);
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle-track.on { background: var(--green); }
+.toggle-thumb {
+  width: 14px; height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px; left: 3px;
+  transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle-track.on .toggle-thumb { left: 19px; }
+.option-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.option-sublabel { font-size: 12px; color: var(--text2); margin-top: 1px; line-height: 1.4; }
+.option-info { display: flex; flex-direction: column; gap: 1px; }
+
+/* Mode switcher */
+.mode-switcher {
+  display: flex;
+  gap: 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.mode-btn {
+  flex: 1;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: var(--card2);
+  color: var(--text2);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.mode-btn:not(:last-child) { border-right: 1.5px solid var(--border-strong); }
+.mode-btn.active-mode { background: var(--green); color: #fff; }
+
+/* Color picker */
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  flex-wrap: wrap;
+}
+.color-picker-label { font-size: 12px; color: var(--text2); font-weight: 600; flex-shrink: 0; }
+.color-swatches { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.color-swatch {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2.5px solid transparent;
+  transition: transform 0.1s, border-color 0.1s;
+  position: relative;
+}
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.selected {
+  border-color: var(--text);
+  transform: scale(1.12);
+}
+.color-swatch.selected::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(0,0,0,0.5);
+}
+.color-preview-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-left: 6px;
+}
+
+/* highlight legend in step 4 */
+.hl-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+.hl-dot { width: 18px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.15); }
+
+/* ── SPINNER ── */
+.spin {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: rot 0.6s linear infinite;
+}
+@keyframes rot { to { transform: rotate(360deg); } }
+
+.hidden { display: none !important; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">⚡</div>
+  <span class="topbar-title">Fusion Excel</span>
+  <span class="topbar-sub">— fichier excell, classeur excell et csv</span>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <div class="progress-steps">
+    <div class="p-step active" id="ps1">
+      <div class="p-circle"><span>1</span></div>
+      <div class="p-label">Fichiers</div>
+    </div>
+    <div class="p-step" id="ps2">
+      <div class="p-circle"><span>2</span></div>
+      <div class="p-label">Clé de liaison</div>
+    </div>
+    <div class="p-step" id="ps3">
+      <div class="p-circle"><span>3</span></div>
+      <div class="p-label">Colonnes</div>
+    </div>
+    <div class="p-step" id="ps4">
+      <div class="p-circle"><span>4</span></div>
+      <div class="p-label">Résultat</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ═══ ÉTAPE 1 ═══ -->
+  <div class="step-card active-card" id="card1">
+    <div class="step-head">
+      <div class="step-num"><span>1</span></div>
+      <div class="step-title-group">
+        <div class="step-title">Chargez vos deux fichiers</div>
+        <div class="step-desc">Le fichier maître est la base de sortie. Le fichier mis à jour apporte les nouvelles informations.</div>
+        <div class="step-summary hidden" id="s1summary"></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <div class="drop-row">
+          <!-- MASTER -->
+          <div>
+            <div class="dropzone" id="dzMain"
+              ondragover="doDrag(event,'Main')" ondragleave="doDragLeave('Main')" ondrop="doDrop(event,'Main')">
+              <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile(event,'Main')">
+              <div class="dz-role master">📊 Fichier MAÎTRE</div>
+              <div class="dz-icon" id="iconMain">📂</div>
+              <div class="dz-label">Le gros fichier original</div>
+              <div class="dz-sub">Glissez ou cliquez pour charger</div>
+              <div class="dz-file hidden" id="fnMain"></div>
+              <div class="dz-stats hidden" id="stMain"></div>
+            </div>
+            <div class="sheet-area hidden" id="sheetAreaMain">
+              <div class="sheet-area-label">Choisissez la feuille :</div>
+              <div class="sheet-tabs" id="sheetTabsMain"></div>
+            </div>
+          </div>
+
+          <div class="drop-arrow">→</div>
+
+          <!-- UPDATE -->
+          <div>
+            <div class="dropzone" id="dzUpdate"
+              ondragover="doDrag(event,'Update')" ondragleave="doDragLeave('Update')" ondrop="doDrop(event,'Update')">
+              <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile(event,'Update')">
+              <div class="dz-role update">📋 Fichier MAJ</div>
+              <div class="dz-icon" id="iconUpdate">📂</div>
+              <div class="dz-label">Le fichier distribué</div>
+              <div class="dz-sub">Avec les nouvelles infos</div>
+              <div class="dz-file hidden" id="fnUpdate"></div>
+              <div class="dz-stats hidden" id="stUpdate"></div>
+            </div>
+            <div class="sheet-area hidden" id="sheetAreaUpdate">
+              <div class="sheet-area-label">Choisissez la feuille :</div>
+              <div class="sheet-tabs" id="sheetTabsUpdate"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ÉTAPE 2 ═══ -->
+  <div class="step-card locked" id="card2">
+    <div class="step-head">
+      <div class="step-num"><span>2</span></div>
+      <div class="step-title-group">
+        <div class="step-title">Quelle colonne identifie chaque boutique ?</div>
+        <div class="step-desc">C'est la colonne commune aux deux fichiers qui permet de retrouver la bonne ligne — par exemple l'URL ou le SIRET.</div>
+        <div class="step-summary hidden" id="s2summary"></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div>L'outil a pré-sélectionné la colonne la plus probable. Vérifiez que les deux colonnes contiennent les mêmes valeurs (ex. même format d'URL).</div>
+        </div>
+        <div class="key-grid">
+          <div class="fl">
+            <label>Dans le fichier <strong>maître</strong></label>
+            <select id="keyMain" onchange="onKeyChange()"></select>
+          </div>
+          <div class="key-equals">=</div>
+          <div class="fl">
+            <label>Dans le fichier <strong>mis à jour</strong></label>
+            <select id="keyUpdate" onchange="onKeyChange()"></select>
+          </div>
+        </div>
+        <div class="match-bar hidden" id="matchBar">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ÉTAPE 3 ═══ -->
+  <div class="step-card locked" id="card3">
+    <div class="step-head">
+      <div class="step-num"><span>3</span></div>
+      <div class="step-title-group">
+        <div class="step-title">Quelles colonnes garder dans le fichier final ?</div>
+        <div class="step-desc">Cochez les colonnes que vous souhaitez inclure. Les nouvelles colonnes (en orange) seront ajoutées au maître.</div>
+        <div class="step-summary hidden" id="s3summary"></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <!-- OPTIONS PANEL -->
+        <div class="options-panel">
+          <div class="options-panel-title">⚙ Options d'export</div>
+
+          <!-- Option 1: Conserver le formatage -->
+          <div class="option-row">
+            <div class="option-toggle" onclick="toggleFormatOption()">
+              <div class="toggle-track" id="trackFormat"><div class="toggle-thumb"></div></div>
+            </div>
+            <div class="option-info">
+              <div class="option-label">🎨 Conserver le formatage du fichier maître</div>
+              <div class="option-sublabel">Préserve les couleurs de fond, polices, bordures et styles des cellules du fichier original.</div>
+            </div>
+          </div>
+
+          <!-- Option 2: Mode opération -->
+          <div class="option-row" style="flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div class="option-info">
+                <div class="option-label">🔀 Mode d'opération</div>
+                <div class="option-sublabel">Choisissez entre fusionner les données ou simplement surligner les lignes communes.</div>
+              </div>
+              <div class="mode-switcher">
+                <button class="mode-btn active-mode" id="modeBtnMerge" onclick="setMode('merge')">⚡ Fusion</button>
+                <button class="mode-btn" id="modeBtnHighlight" onclick="setMode('highlight')">🖍 Surlignage</button>
+              </div>
+            </div>
+            <!-- Color picker (visible seulement en mode surlignage) -->
+            <div class="color-picker-row hidden" id="colorPickerRow">
+              <span class="color-picker-label">Couleur de surlignage :</span>
+              <div class="color-swatches" id="colorSwatches"></div>
+              <span class="color-preview-badge" id="colorPreviewBadge"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="legend" id="mergeModeLegend">
+          <div class="legend-item"><div class="ldot" style="background:var(--bg);border:1.5px solid var(--border-strong)"></div> Colonne existante du maître</div>
+          <div class="legend-item"><div class="ldot" style="background:var(--green-bg);border:1.5px solid var(--green-border)"></div> Mise à jour (valeur remplacée si non vide dans le MAJ)</div>
+          <div class="legend-item"><div class="ldot" style="background:var(--amber-bg);border:1.5px solid var(--amber-border)"></div> Nouvelle colonne à ajouter</div>
+        </div>
+        <div class="col-panels">
+          <div class="col-panel">
+            <div class="col-panel-head">
+              <span class="col-panel-title">Fichier maître</span>
+              <span class="col-panel-file" id="cpFileMain"></span>
+            </div>
+            <div class="col-panel-actions">
+              <button class="lbtn" onclick="selAll('Main',true)">Tout cocher</button>
+              <span style="color:var(--border-strong)">·</span>
+              <button class="lbtn" onclick="selAll('Main',false)">Tout décocher</button>
+            </div>
+            <div class="col-scroll" id="colListMain"></div>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-head">
+              <span class="col-panel-title">Fichier mis à jour</span>
+              <span class="col-panel-file" id="cpFileUpdate"></span>
+            </div>
+            <div class="col-panel-actions">
+              <button class="lbtn" onclick="selAll('Update',true)">Tout cocher</button>
+              <span style="color:var(--border-strong)">·</span>
+              <button class="lbtn" onclick="selAll('Update',false)">Tout décocher</button>
+            </div>
+            <div class="col-scroll" id="colListUpdate"></div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnRun" onclick="runAction()">⚡ Fusionner maintenant</button>
+          <button class="btn btn-ghost" onclick="resetAll()">↺ Recommencer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ÉTAPE 4 ═══ -->
+  <div class="step-card locked" id="card4">
+    <div class="step-head">
+      <div class="step-num"><span>4</span></div>
+      <div class="step-title-group">
+        <div class="step-title">Résultat — Prévisualisation & export</div>
+        <div class="step-desc">Vérifiez les données fusionnées avant de télécharger le fichier final.</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <div class="stats-row" id="statsRow"></div>
+
+        <!-- LEGEND TABLE -->
+        <div class="legend" id="mergeLegend" style="padding-top:0; margin-bottom:10px;">
+          <div class="legend-item"><div class="ldot" style="background:rgba(22,163,74,0.12);border:1.5px solid var(--green-border)"></div> Valeur mise à jour</div>
+          <div class="legend-item"><div class="ldot" style="background:rgba(217,119,6,0.1);border:1.5px solid var(--amber-border)"></div> Nouvelle ligne (du MAJ)</div>
+        </div>
+        <div class="legend hidden" id="highlightLegend" style="padding-top:0; margin-bottom:10px;">
+          <div class="hl-legend-item"><div class="hl-dot" id="hlLegendDot"></div> Ligne commune aux deux fichiers (surlignée)</div>
+          <div class="hl-legend-item"><div class="hl-dot" style="background:transparent;"></div> Ligne sans correspondance (inchangée)</div>
+        </div>
+
+        <div class="tbl-wrap">
+          <table>
+            <thead id="tHead"></thead>
+            <tbody id="tBody"></tbody>
+          </table>
+        </div>
+        <div class="tbl-note">Aperçu limité aux 50 premières lignes — le fichier exporté contient toutes les données.</div>
+
+        <div class="btn-row">
+          <button class="btn btn-export" id="btnExport" onclick="doExport()">⬇ Télécharger le fichier fusionné (.xlsx)</button>
+          <button class="btn btn-ghost" onclick="resetAll()">↺ Recommencer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── STATE ────────────────────────────────────────────────────────────────────
+let mainWb=null, updateWb=null;
+let mainData=[], updateData=[];
+let mainCols=[], updateCols=[];
+let mainFileName='', updateFileName='';
+let selMain=new Set(), selUpdate=new Set();
+let merged=[];
+let keepFormat=false;
+let currentMode='merge'; // 'merge' | 'highlight'
+
+// Highlight colors
+const HIGHLIGHT_COLORS = [
+  { name:'Jaune',   hex:'#FFF176', rgb:{r:255,g:241,b:118} },
+  { name:'Vert',    hex:'#C8E6C9', rgb:{r:200,g:230,b:201} },
+  { name:'Bleu',    hex:'#BBDEFB', rgb:{r:187,g:222,b:251} },
+  { name:'Rose',    hex:'#F8BBD9', rgb:{r:248,g:187,b:217} },
+  { name:'Orange',  hex:'#FFE0B2', rgb:{r:255,g:224,b:178} },
+];
+let selectedColorIdx = 0;
+
+function initColorSwatches() {
+  const container = document.getElementById('colorSwatches');
+  container.innerHTML = '';
+  HIGHLIGHT_COLORS.forEach((col, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (i===0?' selected':'');
+    sw.style.background = col.hex;
+    sw.title = col.name;
+    sw.onclick = () => selectColor(i);
+    container.appendChild(sw);
+  });
+  updateColorBadge();
+}
+
+function selectColor(idx) {
+  selectedColorIdx = idx;
+  document.querySelectorAll('.color-swatch').forEach((sw,i) => {
+    sw.classList.toggle('selected', i===idx);
+  });
+  updateColorBadge();
+}
+
+function updateColorBadge() {
+  const col = HIGHLIGHT_COLORS[selectedColorIdx];
+  const badge = document.getElementById('colorPreviewBadge');
+  badge.textContent = col.name;
+  badge.style.background = col.hex;
+  badge.style.border = '1px solid rgba(0,0,0,0.12)';
+  badge.style.color = '#333';
+  // update legend dot preview
+  const dot = document.getElementById('hlLegendDot');
+  if(dot) dot.style.background = col.hex;
+}
+
+function toggleFormatOption() {
+  keepFormat = !keepFormat;
+  document.getElementById('trackFormat').classList.toggle('on', keepFormat);
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeBtnMerge').classList.toggle('active-mode', mode==='merge');
+  document.getElementById('modeBtnHighlight').classList.toggle('active-mode', mode==='highlight');
+  document.getElementById('colorPickerRow').classList.toggle('hidden', mode!=='highlight');
+  document.getElementById('mergeModeLegend').classList.toggle('hidden', mode==='highlight');
+  // Update run button label
+  const btn = document.getElementById('btnRun');
+  if(mode==='highlight') btn.innerHTML='🖍 Surligner les lignes communes';
+  else btn.innerHTML='⚡ Fusionner maintenant';
+}
+
+function runAction() {
+  if(currentMode==='highlight') runHighlight();
+  else runMerge();
+}
+
+// ── DRAG & DROP ──────────────────────────────────────────────────────────────
+function doDrag(e,w){ e.preventDefault(); document.getElementById('dz'+w).classList.add('over'); }
+function doDragLeave(w){ document.getElementById('dz'+w).classList.remove('over'); }
+function doDrop(e,w){ e.preventDefault(); doDragLeave(w); const f=e.dataTransfer.files[0]; if(f) processFile(f,w); }
+function loadFile(e,w){ const f=e.target.files[0]; if(f) processFile(f,w); }
+
+function processFile(file, w) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const wb = XLSX.read(new Uint8Array(ev.target.result), { type:'array', cellDates:true });
+    if(w==='Main'){ mainWb=wb; mainFileName=file.name; }
+    else { updateWb=wb; updateFileName=file.name; }
+    renderSheetTabs(w, wb);
+    markDropLoaded(w, file.name);
+    checkStep1Done();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function markDropLoaded(w, name) {
+  const dz = document.getElementById('dz'+w);
+  dz.classList.add('loaded');
+  document.getElementById('icon'+w).textContent = '✅';
+  const fn = document.getElementById('fn'+w);
+  fn.textContent = name;
+  fn.classList.remove('hidden');
+}
+
+function renderSheetTabs(w, wb) {
+  const area = document.getElementById('sheetArea'+w);
+  const tabs = document.getElementById('sheetTabs'+w);
+  area.classList.remove('hidden');
+  tabs.innerHTML = '';
+  wb.SheetNames.forEach((name,i) => {
+    const t = document.createElement('div');
+    t.className = 'sheet-tab'+(i===0?' active':'');
+    t.textContent = name;
+    t.onclick = () => {
+      tabs.querySelectorAll('.sheet-tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      loadSheet(w, name);
+    };
+    tabs.appendChild(t);
+  });
+  loadSheet(w, wb.SheetNames[0]);
+}
+
+function loadSheet(w, name) {
+  const wb = w==='Main' ? mainWb : updateWb;
+  const ws = wb.Sheets[name];
+  const allRows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+  const headers = (allRows[0]||[]).map(h=>String(h).trim());
+  const rows = allRows.slice(1).map(row => {
+    const obj={};
+    headers.forEach((h,i)=>{ if(h) obj[h]=row[i]!==undefined?row[i]:''; });
+    return obj;
+  });
+  if(w==='Main'){
+    mainData=rows; mainCols=headers.filter(Boolean);
+    const el=document.getElementById('st'+w);
+    el.textContent=`${rows.length} lignes · ${mainCols.length} colonnes`;
+    el.classList.remove('hidden');
+  } else {
+    updateData=rows; updateCols=headers.filter(Boolean);
+    const el=document.getElementById('st'+w);
+    el.textContent=`${rows.length} lignes · ${updateCols.length} colonnes`;
+    el.classList.remove('hidden');
+  }
+  checkStep1Done();
+}
+
+function checkStep1Done() {
+  if(mainData.length && updateData.length) {
+    unlockCard(1);
+    showStep2();
+  }
+}
+
+// ── STEP 2 ───────────────────────────────────────────────────────────────────
+function showStep2() {
+  unlockCard(2);
+  setProgress(2);
+  populateSel('keyMain', mainCols);
+  populateSel('keyUpdate', updateCols);
+  autoMatchKey();
+  onKeyChange();
+  card(2).scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function populateSel(id, cols) {
+  document.getElementById(id).innerHTML =
+    cols.map(c=>`<option value="${esc(c)}">${c}</option>`).join('');
+}
+
+function autoMatchKey() {
+  const prio = ['siret','url','site','website','nom','name','boutique','email','telephone','id','ref'];
+  const ml = mainCols.map(c=>c.toLowerCase());
+  const ul = updateCols.map(c=>c.toLowerCase());
+  for(const k of prio){
+    const mi=ml.findIndex(c=>c.includes(k));
+    const ui=ul.findIndex(c=>c.includes(k));
+    if(mi!==-1 && ui!==-1){
+      document.getElementById('keyMain').selectedIndex=mi;
+      document.getElementById('keyUpdate').selectedIndex=ui;
+      return;
+    }
+  }
+}
+
+function onKeyChange() {
+  const km = document.getElementById('keyMain').value;
+  const ku = document.getElementById('keyUpdate').value;
+  const mk = new Set(mainData.map(r=>String(r[km]).trim().toLowerCase()));
+  const uk = new Set(updateData.map(r=>String(r[ku]).trim().toLowerCase()));
+  let matched=0, onlyU=0;
+  uk.forEach(k=>{ if(mk.has(k)) matched++; else onlyU++; });
+  const unmatched = mk.size - matched;
+
+  const bar = document.getElementById('matchBar');
+  bar.classList.remove('hidden');
+  bar.innerHTML = `
+    <div class="chip chip-g">✓ ${matched} boutiques trouvées dans les deux fichiers</div>
+    ${unmatched>0 ? `<div class="chip chip-a">⚠ ${unmatched} lignes du maître sans correspondance</div>` : ''}
+    ${onlyU>0 ? `<div class="chip chip-z">⚠ ${onlyU} lignes du MAJ sans correspondance (ignorées)</div>` : ''}
+  `;
+
+  // summary in header
+  const s2 = document.getElementById('s2summary');
+  s2.textContent = `Clé : "${km}" = "${ku}" — ${matched} correspondances`;
+  s2.classList.remove('hidden');
+
+  unlockCard(3);
+  setProgress(3);
+  showStep3();
+}
+
+// ── STEP 3 ───────────────────────────────────────────────────────────────────
+function showStep3() {
+  initColorSwatches();
+  const mainSet = new Set(mainCols);
+  document.getElementById('cpFileMain').textContent = mainFileName;
+  document.getElementById('cpFileUpdate').textContent = updateFileName;
+
+  // Main cols
+  selMain = new Set(mainCols);
+  const lm = document.getElementById('colListMain');
+  lm.innerHTML='';
+  mainCols.forEach(col=>{
+    lm.appendChild(makeRow(col,'Main','main',`<span class="col-tag tag-main">Maître</span>`));
+  });
+
+  // Update cols
+  selUpdate = new Set(updateCols);
+  const lu = document.getElementById('colListUpdate');
+  lu.innerHTML='';
+  updateCols.forEach(col=>{
+    const isNew = !mainSet.has(col);
+    const tag = isNew
+      ? `<span class="col-tag tag-new">✦ Nouvelle</span>`
+      : `<span class="col-tag tag-upd">↑ MAJ</span>`;
+    lu.appendChild(makeRow(col,'Update', isNew?'new':'upd', tag));
+  });
+
+  card(3).scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function makeRow(col, which, type, tagHtml) {
+  const div = document.createElement('div');
+  div.className='col-row sel';
+  div.title = col;
+  div.onclick=()=>toggleCol(div,col,which);
+  div.innerHTML=`<div class="col-cb">✓</div><span class="col-cname">${col}</span>${tagHtml}`;
+  return div;
+}
+
+function toggleCol(el, col, which) {
+  const set = which==='Main' ? selMain : selUpdate;
+  if(set.has(col)){ set.delete(col); el.classList.remove('sel'); }
+  else { set.add(col); el.classList.add('sel'); }
+}
+
+function selAll(which, val) {
+  const set = which==='Main' ? selMain : selUpdate;
+  const cols = which==='Main' ? mainCols : updateCols;
+  document.getElementById('colList'+which).querySelectorAll('.col-row').forEach((el,i)=>{
+    if(val){ set.add(cols[i]); el.classList.add('sel'); }
+    else { set.delete(cols[i]); el.classList.remove('sel'); }
+  });
+}
+
+// ── HIGHLIGHT MODE ────────────────────────────────────────────────────────────
+function runHighlight() {
+  const km = document.getElementById('keyMain').value;
+  const ku = document.getElementById('keyUpdate').value;
+  const ukSet = new Set(updateData.map(r=>String(r[ku]).trim().toLowerCase()));
+
+  // Mark each main row as matched or not
+  merged = mainData.map(row => {
+    const key = String(row[km]).trim().toLowerCase();
+    const matched = ukSet.has(key);
+    const out = { __matched__: matched, __mode__: 'highlight', __updCols__: [] };
+    mainCols.forEach(c => { out[c] = row[c]; });
+    return out;
+  });
+
+  showStep4();
+}
+
+// ── MERGE ────────────────────────────────────────────────────────────────────
+function runMerge() {
+  const km = document.getElementById('keyMain').value;
+  const ku = document.getElementById('keyUpdate').value;
+
+  // Index update by key
+  const idx={};
+  updateData.forEach(r=>{ idx[String(r[ku]).trim().toLowerCase()]=r; });
+
+  // Merge main
+  merged = mainData.map(row=>{
+    const key = String(row[km]).trim().toLowerCase();
+    const urow = idx[key];
+    const out={__matched__:!!urow, __updCols__:[]};
+
+    mainCols.forEach(c=>{
+      if(!selMain.has(c)) return;
+      out[c] = row[c];
+      if(urow && selUpdate.has(c) && updateCols.includes(c)){
+        const nv = urow[c];
+        if(nv!==''&&nv!==null&&nv!==undefined && String(nv)!==String(row[c])){
+          out[c]=nv; out.__updCols__.push(c);
+        }
+      }
+    });
+    updateCols.forEach(c=>{
+      if(selUpdate.has(c) && !mainCols.includes(c))
+        out[c] = urow ? urow[c] : '';
+    });
+    return out;
+  });
+
+  showStep4();
+}
+
+// ── STEP 4 ───────────────────────────────────────────────────────────────────
+function getOutCols(){
+  const cols=[];
+  mainCols.forEach(c=>{ if(selMain.has(c)) cols.push(c); });
+  updateCols.forEach(c=>{ if(selUpdate.has(c)&&!mainCols.includes(c)) cols.push(c); });
+  return cols;
+}
+
+function showStep4(){
+  unlockCard(4);
+  setProgress(4);
+
+  const isHighlight = currentMode==='highlight';
+  const total=merged.length;
+  const matched=merged.filter(r=>r.__matched__).length;
+  const updated=merged.filter(r=>r.__updCols__&&r.__updCols__.length>0).length;
+  const unmatched=merged.filter(r=>!r.__matched__).length;
+
+  if(isHighlight){
+    const col = HIGHLIGHT_COLORS[selectedColorIdx];
+    document.getElementById('statsRow').innerHTML=`
+      <div class="stat-box"><div class="stat-num">${total}</div><div class="stat-lbl">Lignes au total</div></div>
+      <div class="stat-box"><div class="stat-num g">${matched}</div><div class="stat-lbl">Lignes surlignées</div></div>
+      <div class="stat-box"><div class="stat-num b">${unmatched}</div><div class="stat-lbl">Lignes sans correspondance</div></div>
+    `;
+    document.getElementById('mergeLegend').classList.add('hidden');
+    document.getElementById('highlightLegend').classList.remove('hidden');
+    const dot = document.getElementById('hlLegendDot');
+    if(dot) dot.style.background = col.hex;
+    document.getElementById('btnExport').innerHTML='⬇ Télécharger avec surlignage (.xlsx)';
+  } else {
+    document.getElementById('statsRow').innerHTML=`
+      <div class="stat-box"><div class="stat-num">${total}</div><div class="stat-lbl">Lignes au total</div></div>
+      <div class="stat-box"><div class="stat-num g">${matched}</div><div class="stat-lbl">Correspondances trouvées</div></div>
+      <div class="stat-box"><div class="stat-num a">${updated}</div><div class="stat-lbl">Cellules mises à jour</div></div>
+      <div class="stat-box"><div class="stat-num b">${unmatched}</div><div class="stat-lbl">Lignes sans correspondance</div></div>
+    `;
+    document.getElementById('mergeLegend').classList.remove('hidden');
+    document.getElementById('highlightLegend').classList.add('hidden');
+    document.getElementById('btnExport').innerHTML='⬇ Télécharger le fichier fusionné (.xlsx)';
+  }
+
+  renderTable();
+  card(4).scrollIntoView({ behavior:'smooth', block:'start' });
+
+  // summary step 3
+  const s3=document.getElementById('s3summary');
+  const nc = getOutCols().length;
+  s3.textContent=`${nc} colonnes sélectionnées`;
+  s3.classList.remove('hidden');
+}
+
+function renderTable(){
+  const cols=getOutCols();
+  const uSet=new Set(updateCols);
+  const mSet=new Set(mainCols);
+  const isHighlight = currentMode==='highlight';
+  const hlColor = HIGHLIGHT_COLORS[selectedColorIdx].hex;
+
+  document.getElementById('tHead').innerHTML='<tr>'+cols.map(c=>{
+    const isNew=!mSet.has(c);
+    const isUpd=uSet.has(c)&&mSet.has(c);
+    return `<th class="${isNew?'h-new':isUpd&&!isHighlight?'h-upd':''}" title="${c}">${c}${isNew?' ✦':isUpd&&!isHighlight?' ↑':''}</th>`;
+  }).join('')+'</tr>';
+
+  document.getElementById('tBody').innerHTML=merged.slice(0,50).map(row=>{
+    const us=new Set(row.__updCols__||[]);
+    const isMatched=row.__matched__;
+    const rowStyle = isHighlight && isMatched ? `style="background:${hlColor}"` : '';
+    return `<tr ${rowStyle}>`+cols.map(c=>{
+      const v=row[c]!==undefined?row[c]:'';
+      let cls='';
+      if(!isHighlight){
+        if(row.__isNew__) cls='td-added';
+        else if(us.has(c)) cls='td-upd';
+      }
+      return `<td class="${cls}" title="${String(v)}">${String(v).substring(0,100)}</td>`;
+    }).join('')+'</tr>';
+  }).join('');
+}
+
+// ── EXPORT ───────────────────────────────────────────────────────────────────
+function doExport(){
+  const btn=document.getElementById('btnExport');
+  btn.innerHTML='<span class="spin"></span> Génération...';
+  btn.disabled=true;
+  setTimeout(()=>{
+    if(currentMode==='highlight'){
+      doExportHighlight(btn);
+    } else {
+      doExportMerge(btn);
+    }
+  },120);
+}
+
+function doExportMerge(btn){
+  const cols=getOutCols();
+  const rows=merged.map(r=>{
+    const o={};
+    cols.forEach(c=>{ o[c]=r[c]!==undefined?r[c]:''; });
+    return o;
+  });
+
+  let wb, ws;
+
+  if(keepFormat && mainWb){
+    // Clone the main workbook to preserve styles
+    const mainSheetName = mainWb.SheetNames[0];
+    wb = XLSX.utils.book_new();
+    // Deep-copy the original sheet to preserve styles
+    const origWs = mainWb.Sheets[mainSheetName];
+    ws = Object.assign({}, origWs);
+    // Overwrite cell values with merged data
+    const header = cols;
+    // Re-write data starting row 2 (row 1 = header)
+    rows.forEach((row, ri) => {
+      cols.forEach((col, ci) => {
+        const cellRef = XLSX.utils.encode_cell({r: ri+1, c: ci});
+        if(!ws[cellRef]) ws[cellRef] = {};
+        ws[cellRef].v = row[col]!==undefined ? row[col] : '';
+        ws[cellRef].t = typeof row[col]==='number' ? 'n' : 's';
+      });
+    });
+    // Adjust range
+    ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:rows.length, c:cols.length-1}});
+    XLSX.utils.book_append_sheet(wb, ws, 'Données fusionnées');
+  } else {
+    ws = XLSX.utils.json_to_sheet(rows, {header:cols});
+    wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Données fusionnées');
+  }
+
+  XLSX.writeFile(wb,'fichier_fusionne.xlsx',{bookType:'xlsx',type:'binary'});
+  btn.innerHTML='✅ Téléchargé !';
+  btn.disabled=false;
+  setTimeout(()=>{ btn.innerHTML='⬇ Télécharger le fichier fusionné (.xlsx)'; },3500);
+}
+
+function doExportHighlight(btn){
+  const cols = getOutCols();
+  const hlColor = HIGHLIGHT_COLORS[selectedColorIdx];
+  const fgHex = hlColor.hex.replace('#','');
+
+  let wb, ws;
+
+  if(keepFormat && mainWb){
+    // Clone original sheet for format preservation
+    const mainSheetName = mainWb.SheetNames[0];
+    wb = XLSX.utils.book_new();
+    const origWs = mainWb.Sheets[mainSheetName];
+    ws = Object.assign({}, origWs);
+    if(ws['!ref']) {
+      // Apply highlight fill on matched rows
+      merged.forEach((row, ri) => {
+        if(row.__matched__){
+          cols.forEach((col, ci) => {
+            const cellRef = XLSX.utils.encode_cell({r: ri+1, c: ci});
+            if(!ws[cellRef]) ws[cellRef] = {};
+            if(!ws[cellRef].s) ws[cellRef].s = {};
+            ws[cellRef].s.fgColor = { rgb: fgHex };
+            ws[cellRef].s.patternType = 'solid';
+          });
+        }
+      });
+    }
+    XLSX.utils.book_append_sheet(wb, ws, 'Surlignage');
+  } else {
+    // Build fresh sheet with highlight styles
+    const rows = merged.map(r=>{
+      const o={};
+      cols.forEach(c=>{ o[c]=r[c]!==undefined?r[c]:''; });
+      return o;
+    });
+
+    wb = XLSX.utils.book_new();
+    ws = XLSX.utils.json_to_sheet(rows, {header:cols});
+
+    // Apply cell styles for highlighted rows
+    merged.forEach((row, ri) => {
+      if(row.__matched__){
+        cols.forEach((col, ci) => {
+          const cellRef = XLSX.utils.encode_cell({r: ri+1, c: ci});
+          if(!ws[cellRef]) ws[cellRef] = {};
+          if(!ws[cellRef].s) ws[cellRef].s = {};
+          ws[cellRef].s.fgColor = { rgb: fgHex };
+          ws[cellRef].s.patternType = 'solid';
+          ws[cellRef].s.fill = { patternType:'solid', fgColor:{ rgb: fgHex } };
+        });
+      }
+    });
+    XLSX.utils.book_append_sheet(wb, ws, 'Surlignage');
+  }
+
+  XLSX.writeFile(wb,'fichier_surligne.xlsx',{bookType:'xlsx',type:'binary', cellStyles:true});
+  btn.innerHTML='✅ Téléchargé !';
+  btn.disabled=false;
+  setTimeout(()=>{ btn.innerHTML='⬇ Télécharger avec surlignage (.xlsx)'; },3500);
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function card(n){ return document.getElementById('card'+n); }
+
+function unlockCard(n){
+  card(n).classList.remove('locked');
+  card(n).classList.add('active-card');
+  // done-ify previous
+  for(let i=1;i<n;i++){
+    card(i).classList.remove('active-card');
+    card(i).classList.add('done-card');
+  }
+}
+
+function setProgress(active){
+  for(let i=1;i<=4;i++){
+    const el=document.getElementById('ps'+i);
+    el.classList.remove('active','done');
+    if(i<active) el.classList.add('done');
+    else if(i===active) el.classList.add('active');
+  }
+}
+
+function esc(s){ return String(s).replace(/"/g,'&quot;'); }
+function resetAll(){ location.reload(); }
+</script>
+</body>
+</html>

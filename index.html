@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8-">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Script Runner — Collecte de données</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -457,6 +457,27 @@ header {
   padding: 20px;
 }
 .sp-icon { font-size: 28px; opacity: .25; }
+
+.compilation {color:white;
+  font-family:var(--mono);
+  background-color: #3d99f0;
+  border : 1px #074d94 solid;
+  border-radius: var(--r);
+  transition: all 0.3s ease;
+
+}
+.lien {color: black;
+  text-decoration: none;
+  font-weight: bold;
+}
+.compilation:hover {
+  background-color: #4aa6ff;
+  transform: scale(1.05);
+
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.6),
+    0 0 25px rgba(61, 153, 240, 0.8);
+}
 </style>
 </head>
 <body>
@@ -466,6 +487,7 @@ header {
     <div class="logo-dot off" id="serverDot"></div>
     Collecte de données
   </div>
+  <div class="compilation"><a href="excel-merger.html" class="lien">Compilation et mise a jour de la base de données</a></div>
   <div class="header-sep"></div>
   <div class="server-badge err" id="serverBadge">⬤ serveur déconnecté</div>
 </header>
