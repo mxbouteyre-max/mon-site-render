@@ -3,6 +3,8 @@ import pandas as pd
 import time
 import re
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # =====================================================
 # CONFIG
@@ -22,6 +24,16 @@ HEADERS = {
     "referer": "https://www.grandoptical.com/",
     "user-agent": "Mozilla/5.0"
 }
+
+# nombre de requêtes en parallèle
+MAX_WORKERS = 10
+
+# pause entre deux requêtes faites par UN même worker (politesse API)
+SLEEP_BETWEEN_CALLS = 0.1
+
+# sauvegarde live du CSV toutes les N zones traitées (au lieu de chaque zone)
+SAVE_EVERY = 50
+
 
 # =====================================================
 # FORMAT TELEPHONE
@@ -142,79 +154,99 @@ print("=" * 60)
 # =====================================================
 
 stores = {}
+stores_lock = threading.Lock()
 
-for i, (lat, lon) in enumerate(coords, 1):
 
-    print(f"\n[{i}/{len(coords)}] {lat},{lon}")
+def process_zone(item):
+    i, (lat, lon) = item
 
     results = fetch_stores(lat, lon)
+    time.sleep(SLEEP_BETWEEN_CALLS)
 
-    print(f"→ {len(results)} magasins")
+    new_count = 0
 
-    for s in results:
+    with stores_lock:
+        for s in results:
 
-        sid = s.get("globalStoreId")
+            sid = s.get("globalStoreId")
 
-        if not sid:
-            continue
+            if not sid:
+                continue
 
-        geo = {
-            "lat": s.get("lat"),
-            "lon": s.get("lon")
-        }
+            if sid not in stores:
+                new_count += 1
 
-        stores[sid] = {
+            geo = {
+                "lat": s.get("lat"),
+                "lon": s.get("lon")
+            }
 
-            # IDENTIFIANTS
-            "code": s.get("code"),
-            "globalStoreId": sid,
-            "slug": s.get("slug"),
+            stores[sid] = {
 
-            # NOM
-            "name": s.get("name"),
-            "shortName": s.get("shortName"),
+                # IDENTIFIANTS
+                "code": s.get("code"),
+                "globalStoreId": sid,
+                "slug": s.get("slug"),
 
-            # ADRESSE
-            "streetNumber": s.get("streetNumber"),
-            "streetName": s.get("streetName"),
-            "additionalStreetInfo": s.get("additionalStreetInfo"),
+                # NOM
+                "name": s.get("name"),
+                "shortName": s.get("shortName"),
 
-            "adresse_complete": " ".join(filter(None, [
-                str(s.get("streetNumber") or "").strip(),
-                str(s.get("streetName") or "").strip(),
-                str(s.get("additionalStreetInfo") or "").strip()
-            ])),
+                # ADRESSE
+                "streetNumber": s.get("streetNumber"),
+                "streetName": s.get("streetName"),
+                "additionalStreetInfo": s.get("additionalStreetInfo"),
 
-            # LOCALISATION
-            "postalCode": s.get("postalCode"),
-            "town": s.get("town"),
-            "province": s.get("province"),
-            "country": s.get("country"),
+                "adresse_complete": " ".join(filter(None, [
+                    str(s.get("streetNumber") or "").strip(),
+                    str(s.get("streetName") or "").strip(),
+                    str(s.get("additionalStreetInfo") or "").strip()
+                ])),
 
-            "departement": extract_department(
-                s.get("postalCode")
-            ),
+                # LOCALISATION
+                "postalCode": s.get("postalCode"),
+                "town": s.get("town"),
+                "province": s.get("province"),
+                "country": s.get("country"),
 
-            # GEO
-            "lat": geo["lat"],
-            "lon": geo["lon"],
+                "departement": extract_department(
+                    s.get("postalCode")
+                ),
 
-            # CONTACT
-            "email": s.get("email"),
-            "phone_raw": s.get("phone"),
-            "phone": format_phone(s.get("phone")),
-        }
+                # GEO
+                "lat": geo["lat"],
+                "lon": geo["lon"],
 
-    print(f"📦 Total unique: {len(stores)}")
+                # CONTACT
+                "email": s.get("email"),
+                "phone_raw": s.get("phone"),
+                "phone": format_phone(s.get("phone")),
+            }
 
-    # sauvegarde live
-    pd.DataFrame(stores.values()).to_csv(
-        OUTPUT,
-        index=False,
-        encoding="utf-8-sig"
-    )
+        total = len(stores)
 
-    time.sleep(0.15)
+    return i, lat, lon, len(results), new_count, total
+
+
+processed = 0
+
+with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    futures = [executor.submit(process_zone, item) for item in enumerate(coords, 1)]
+
+    for future in as_completed(futures):
+        i, lat, lon, found, new_count, total = future.result()
+        processed += 1
+
+        print(f"[{i}/{len(coords)}] {lat},{lon} -> {found} magasins ({new_count} nouveaux, {total} total)")
+
+        # sauvegarde live périodique (au lieu de réécrire le CSV à chaque zone)
+        if processed % SAVE_EVERY == 0:
+            with stores_lock:
+                pd.DataFrame(stores.values()).to_csv(
+                    OUTPUT,
+                    index=False,
+                    encoding="utf-8-sig"
+                )
 
 
 # =====================================================
