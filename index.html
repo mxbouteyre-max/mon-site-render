@@ -461,10 +461,12 @@ header {
 .compilation {color:white;
   font-family:var(--mono);
   background-color: #3d99f0;
-  border : 1px #074d94 solid;
+  border : 2px #074d94 solid;
   border-radius: var(--r);
   transition: all 0.3s ease;
-
+  padding: 5px;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 .lien {color: black;
   text-decoration: none;
@@ -478,6 +480,26 @@ header {
     0 0 10px rgba(255, 255, 255, 0.6),
     0 0 25px rgba(61, 153, 240, 0.8);
 }
+
+.info:hover {
+  background-color: #f5e82e;
+  transform: scale(1.05);
+
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.6),
+    0 0 25px rgba(252, 201, 34, 0.8);
+}
+
+
+.info{color:white;
+  font-family:var(--mono);
+  background-color: #f5e82e;
+  border : 2px #f0c129 solid;
+  border-radius: var(--r);
+  transition: all 0.3s ease;
+  padding: 5px;
+  margin-left: 10px;
+}
 </style>
 </head>
 <body>
@@ -488,7 +510,7 @@ header {
     Collecte de données
   </div>
   <div class="compilation"><a href="/excel-merger.html" class="lien">Compilation et mise a jour de la base de données</a></div>
-  <div class="information"><a id="information" href="/information.html">Informations</a></div>
+  <div class="info"><a href="/information.html"class="lien">Informations</a></div>
   <div class="header-sep"></div>
   <div class="server-badge err" id="serverBadge">⬤ serveur déconnecté</div>
 </header>

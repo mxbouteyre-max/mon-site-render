@@ -701,6 +701,50 @@ td.td-added { background: rgba(37,99,235,0.05); }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+.lien{text-decoration: none;
+color: #18181b;}
+
+.index{color: var(--text);
+  font-family:var(--mono);
+  background-color: var(--amber-border);
+  border : 2px var(--amber) solid;
+  border-radius: var(--r);
+  transition: all 0.3s ease;
+  padding: 5px;
+  margin-left: 480px;
+
+}
+
+.index:hover {
+  background-color: var(--amber-border);
+  transform: scale(1.05);
+
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.6),
+    0 0 25px rgba(252, 201, 34, 0.8);
+}
+
+
+.info:hover {
+  background-color: var(--amber-border);
+  transform: scale(1.05);
+
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.6),
+    0 0 25px rgba(252, 201, 34, 0.8);
+}
+
+
+.info{color: var(--text);
+  font-family:var(--mono);
+  background-color: var(--amber-border);
+  border : 2px var(--amber) solid;
+  border-radius: var(--r);
+  transition: all 0.3s ease;
+  padding: 5px;
+  margin-left: 10px;
+}
 </style>
 </head>
 <body>
@@ -710,8 +754,8 @@ td.td-added { background: rgba(37,99,235,0.05); }
   <div class="logo">⚡</div>
   <span class="topbar-title">Fusion Excel</span>
   <span class="topbar-sub">— fichier excell, classeur excell et csv</span>
-  <span claas="lien"><a href="/">Extraction de données</a></span>
-  <span class="info"><a href="/information.html">Informations</a></span>
+  <span class="index"><a href="/" class="lien">Extraction de données</a></span>
+  <span class="info"><a href="/information.html" class="lien">Informations</a></span>
 </div>
 
 <!-- PROGRESS -->
