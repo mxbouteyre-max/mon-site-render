@@ -5,11 +5,23 @@ import json
 import csv
 import time
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 headers = {
     "User-Agent": "Mozilla/5.0"
 }
-#liste des départements utilisés dans l'URL 
+
+# nombre de départements traités en parallèle (I/O-bound -> peut être > nb de coeurs)
+MAX_WORKERS = 8
+
+# pause entre deux requêtes successives faites par UN même worker (politesse serveur)
+SLEEP_BETWEEN_PAGES = 0.5
+
+# sécurité : on arrête de paginer un département dès qu'une page est vide,
+# mais on garde une limite haute au cas où
+MAX_PAGES = 20
+
+#liste des départements utilisés dans l'URL
 departements = [
 "AIN (01)",
 "AISNE (02)",
@@ -113,34 +125,27 @@ departements = [
 "MAYOTTE (976)"
 ]
 
-#objet qui stocke le tableau des résultats obtenus
 
-results = []
-
-for dep in departements:
-
+def scrape_departement(dep):
+    """Scrape toutes les pages d'un département, s'arrête dès qu'une page est vide."""
     encoded_dep = urllib.parse.quote_plus(dep)
-
-# sélectionne et remplace dans encoded_dep la valeur du tableau dep définie plus haut, lance la boucle avec ce dep dans l'url et stocke les résultats dans le tableau result.
-
     BASE_URL = f"https://www.monopticien.com/trouvez-nous/6?ville={encoded_dep}"
 
-#affiche dans le terminal quel département est scrapé
-
+    dep_results = []
     print(f"\nScraping département : {dep}")
 
-# boucle qui parcourt toutes les pages de la recherche associée au département dep dans la boucle précédente. Cette nouvelle boucle récupère sur les pages les données json relatives aux différentes boutiques. Ces données sont stockées dans des variables temporaires qui elles ensuite sont stockées dans une fonction result.append.
-
-    for page in range(1, 20):
-
-        print(f"Page {page}")
-
+    for page in range(1, MAX_PAGES + 1):
         url = BASE_URL + f"&page={page}"
-        response = requests.get(url, headers=headers)
-        soup = BeautifulSoup(response.text, "html.parser")
 
-        scripts = soup.find_all("script", type="application/ld+json")
+        try:
+            response = requests.get(url, headers=headers, timeout=15)
+            soup = BeautifulSoup(response.text, "html.parser")
+            scripts = soup.find_all("script", type="application/ld+json")
+        except Exception as e:
+            print(f"  [{dep}] page {page} -> erreur réseau ({e}), arrêt du département")
+            break
 
+        page_count = 0
         for script in scripts:
             try:
                 data = json.loads(script.string)
@@ -160,7 +165,7 @@ for dep in departements:
 
                 dept_num = postal[:2] if postal else None
 
-                results.append([
+                dep_results.append([
                     name,
                     street,
                     city,
@@ -170,28 +175,49 @@ for dep in departements:
                     url_site,
                     dep
                 ])
+                page_count += 1
 
             except Exception:
                 continue
 
-        time.sleep(1)
+        print(f"  [{dep}] page {page} -> {page_count} boutique(s)")
 
-#affiche le nombre total de boutique récupérée lors de la session.
+        # plus aucun résultat sur cette page -> on arrête de paginer ce département
+        if page_count == 0:
+            break
 
-print("TOTAL :", len(results))
+        time.sleep(SLEEP_BETWEEN_PAGES)
+
+    return dep_results
+
+
+results = []
+
+with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    futures = {executor.submit(scrape_departement, dep): dep for dep in departements}
+
+    for future in as_completed(futures):
+        dep = futures[future]
+        try:
+            dep_results = future.result()
+            results.extend(dep_results)
+        except Exception as e:
+            print(f"Erreur sur le département {dep} : {e}")
+
+print("\nTOTAL :", len(results))
 
 # CSV. Récupère les résultats et les range dans un classeur excel, avec comme séparateur ; (cf. delimiter=";")
 with open("opticiens_france_et_outre.csv", "w", newline="", encoding="utf-8-sig") as f:
     writer = csv.writer(f, delimiter=";")
 
     writer.writerow([
-        "Nom",
-        "Rue",
-        "Ville",
-        "CP",
-        "Département",
-        "Téléphone",
-        "Site",
+        "nom",
+        "adresse",
+        "ville",
+        "cp",
+        "departement",
+        "téléphone",
+        "url",
         "Zone recherchée"
     ])
 
