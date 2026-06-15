@@ -2,13 +2,16 @@
 app.py — Serveur Flask pour Render
 """
 
-import os, sys, glob, io, subprocess
+import os, sys, glob, io, subprocess, threading
+from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory, send_file
 
 app = Flask(__name__)
 
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS_DIR = os.path.join(BASE_DIR, "code_extraction")
+JOBS = {}
+MAX_RUNNING = 2
 
 # ── lecture CSV robuste ───────────────────────────────────────────
 def _read_csv_robust(filepath):
@@ -38,6 +41,38 @@ def _read_csv_robust(filepath):
                 continue
 
     raise ValueError(f"Impossible de lire le CSV ({last_error})")
+
+def execute_script(script_name, script_path):
+    try:
+        process = subprocess.Popen(
+            [sys.executable, script_path],
+            cwd=SCRIPTS_DIR,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        JOBS[script_name] = {
+            "status": "running",
+            "pid": process.pid,
+            "start_time": datetime.now().isoformat()
+        }
+
+        stdout, stderr = process.communicate()
+
+        JOBS[script_name].update({
+            "status": "finished" if process.returncode == 0 else "failed",
+            "returncode": process.returncode,
+            "stdout": stdout[-10000:] if stdout else "",
+            "stderr": stderr[-10000:] if stderr else "",
+            "end_time": datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        JOBS[script_name] = {
+            "status": "failed",
+            "error": str(e)
+        }
 
 # ── route principale ──────────────────────────────────────────────
 @app.route("/")
@@ -74,36 +109,51 @@ def api_run():
         return jsonify({"ok": False, "error": "Nom invalide"}), 400
 
     path = os.path.join(SCRIPTS_DIR, name)
+
     if not os.path.isfile(path):
-        return jsonify({"ok": False, "error": f"Script introuvable : {name}"}), 404
+        return jsonify({
+            "ok": False,
+            "error": f"Script introuvable : {name}"
+        }), 404
 
-    before = set(glob.glob(os.path.join(SCRIPTS_DIR, "*")))
+    running_count = sum(
+        1 for job in JOBS.values()
+        if job.get("status") == "running"
+    )
 
-    try:
-        result = subprocess.run(
-            [sys.executable, path],
-            capture_output=True, text=True,
-            cwd=SCRIPTS_DIR, timeout=300
-        )
-    except subprocess.TimeoutExpired:
-        return jsonify({"ok": False, "script": name, "error": "Timeout (>5 min)"})
-    except Exception as e:
-        return jsonify({"ok": False, "script": name, "error": str(e)})
+    if running_count >= MAX_RUNNING:
+        return jsonify({
+            "ok": False,
+            "error": f"Maximum {MAX_RUNNING} scripts simultanés"
+        })
 
-    after     = set(glob.glob(os.path.join(SCRIPTS_DIR, "*")))
-    new_files = [
-        os.path.basename(f) for f in (after - before)
-        if not f.endswith(".py")
-    ]
+    if (
+        name in JOBS and
+        JOBS[name].get("status") == "running"
+    ):
+        return jsonify({
+            "ok": False,
+            "error": "Script déjà en cours"
+        })
+
+    thread = threading.Thread(
+        target=execute_script,
+        args=(name, path),
+        daemon=True
+    )
+
+    thread.start()
 
     return jsonify({
-        "ok":         result.returncode == 0,
-        "script":     name,
-        "returncode": result.returncode,
-        "stdout":     result.stdout,
-        "stderr":     result.stderr,
-        "new_files":  new_files,
+        "ok": True,
+        "message": f"{name} lancé en arrière-plan"
     })
+
+
+
+@app.route("/api/jobs")
+def api_jobs():
+    return jsonify(JOBS)
 
 # ── liste des fichiers produits ───────────────────────────────────
 @app.route("/api/outputs")

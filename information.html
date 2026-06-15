@@ -5,22 +5,93 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>informations site web</title>
 <style>
+
+:root {
+  --bg: #f4f3ef;
+  --card: #ffffff;
+  --card2: #f9f8f5;
+  --border: #e5e3dd;
+  --border-strong: #ccc9c0;
+  --text: #18181b;
+  --text2: #71717a;
+  --text3: #a1a1aa;
+  --green: #16a34a;
+  --green-bg: #f0fdf4;
+  --green-border: #bbf7d0;
+  --amber: #d97706;
+  --amber-bg: #fffbeb;
+  --amber-border: #fde68a;
+  --blue: #2563eb;
+  --blue-bg: #eff6ff;
+  --blue-border: #bfdbfe;}
+
+#titre{font-weight: bold ;
+text-align: center;
+color: var(--text);}
+
+p{font-family: "Times New Roman", serif;
+text-align: justify;
+color: var(--text2);}
+
+.box{border: var(--border-strong) solid 2px;
+margin-left: 30px ;
+margin-right: 30px;
+padding: 25px;
+border-radius: 5px;
+background-color: var(--card);}
+
+a{text-decoration: none;
+color: black;}
+
+a:hover{text-decoration: none;
+color: #16a34a;}
+
+body {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  background-color: var(--bg);
+}
+.merger{margin-right: 30px;
+border-radius: 8px;
+padding: 5px;
+border: var(--border-strong) 2px solid;}
+
+.merger:hover{margin-right: 30px;
+border-radius: 8px;
+padding: 5px;
+border: var(--green) 2px solid;
+background-color: var(--green-border);}
+
+.index{margin-left: 30px;
+border-radius: 8px;
+padding: 5px;
+border: var(--border-strong) 2px solid;}
+
+.index:hover{margin-left: 30px;
+border-radius: 8px;
+padding: 5px;
+border: var(--green) 2px solid;
+background-color: var(--green-border);}
+
+.nav{display: flex;
+justify-content: space-between;}
 </style>
 </head>
     <body>
         <h1 id="titre">Informations</h1>
-        <div>
-            <a href="/index.html">Retour vers la page d'extraction</a>
-            <a href="/excel-merger.html">Retour vers la fusion de fichiers</a>
+        <div class="nav">
+            <a class="index" href="/">Retour vers la page d'extraction</a>
+            <a class="merger" href="/excel-merger.html">Retour vers la fusion de fichiers</a>
         </div>
-        <div>
+        <div class="box">
             <h2>Index.html</h2>
-            <p>La page index.html permet de lancer l'extraction de données de différents sites web d'enseigne d'optique en France (31).</p>
-            <p>Elle réfence 31 codes python contenant les scripts d'extraction. Ils sont nommés de la façon suivante : export + le site dont il fait l'extraction. Pour lancer l'extraction, il suffit de cocher les codes, et donc les sites, dont on souhaite récolter les données. Puis il faut lancer l'extraction en cliquant sur le bouton Lancer.</p>
+            <p>La page index.html permet de lancer l'extraction de données de différents sites web d'enseigne d'optique en France (30).</p>
+            <p>Elle réfence 30 codes python contenant les scripts d'extraction. Ils sont nommés de la façon suivante : export + le site dont il fait l'extraction. Pour lancer l'extraction, il suffit de cocher les codes, et donc les sites, dont on souhaite récolter les données. Puis il faut lancer l'extraction en cliquant sur le bouton Lancer.</p>
             <p>Le suivi de la progression de l'extraction des données peut être observé dans la console juste à droite du menu de sélection.</p>
             <p>Une fois que l'ensemble des scripts sélectionnés a fini de s'exécuter, le fichier xlsx qui contient les données extraites peut être téléchargé en cliquant sur le bouton télécharger xlsx. </p>
         </div>
-        <div>
+        <div class="box">
             <h2>Merger_excel.html</h2>
             <p>L'interface merger_excel.html permet de fusionner et de mettre à jour un fichier excel.</p>
             <p>Le principe est simple. On y dépose le fichier que l'on souhaite actualiser. Ce fichier s'appelle le fichier maître. On dépose également un second fichier qui lui est appelé fichier mis à jour (c'est le fichier contenant les données qui vont actualiser celles du fichier maître).</p>
