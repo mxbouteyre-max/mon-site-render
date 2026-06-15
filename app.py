@@ -44,7 +44,9 @@ def _read_csv_robust(filepath):
 def index():
     return send_from_directory(".", "index.html")
 
-
+@app.route("/information.html")
+def information():
+    return send_from_directory(".", "information.html")  
 
 
 @app.route("/excel-merger.html")
