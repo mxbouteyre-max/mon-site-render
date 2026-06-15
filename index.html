@@ -807,20 +807,48 @@ async function runAll() {
 async function callRun(name) {
   const t = Date.now();
   try {
+    // 1) Liste des fichiers déjà présents avant exécution (pour détecter les nouveaux)
+    const before = await fetch(`${API}/api/outputs`).then(r => r.json()).then(d => d.files || []).catch(() => []);
+
+    // 2) Lancement du script
     const r = await fetch(`${API}/api/run`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ script: name })
     });
     const d = await r.json();
+
+    if (!d.ok) {
+      return {
+        script: name, ok: false,
+        returncode: -1, stdout: '', stderr: '',
+        error: d.error || 'Erreur au lancement', new_files: [],
+        duration: ((Date.now() - t) / 1000).toFixed(2),
+        ts: new Date().toLocaleString('fr-FR')
+      };
+    }
+
+    // 3) Poll /api/jobs jusqu'à ce que le job ne soit plus "running"
+    let job = null;
+    while (true) {
+      await new Promise(res => setTimeout(res, 800));
+      const jobs = await fetch(`${API}/api/jobs`).then(r => r.json());
+      job = jobs[name];
+      if (job && job.status !== 'running') break;
+    }
+
+    // 4) Détection des nouveaux fichiers produits
+    const after = await fetch(`${API}/api/outputs`).then(r => r.json()).then(d => d.files || []).catch(() => []);
+    const new_files = after.filter(f => !before.includes(f));
+
     return {
       script: name,
-      ok: d.ok,
-      returncode: d.returncode ?? -1,
-      stdout: d.stdout || '',
-      stderr: d.stderr || '',
-      error: d.error || '',
-      new_files: d.new_files || [],
+      ok: job.status === 'finished',
+      returncode: job.returncode ?? -1,
+      stdout: job.stdout || '',
+      stderr: job.stderr || '',
+      error: job.error || '',
+      new_files,
       duration: ((Date.now() - t) / 1000).toFixed(2),
       ts: new Date().toLocaleString('fr-FR')
     };
