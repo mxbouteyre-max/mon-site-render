@@ -41,7 +41,8 @@ border-radius: 5px;
 background-color: var(--card);}
 
 a{text-decoration: none;
-color: black;}
+color: black;
+padding: 5px;}
 
 a:hover{text-decoration: none;
 color: #16a34a;}
@@ -54,23 +55,23 @@ body {
 }
 .merger{margin-right: 30px;
 border-radius: 8px;
-padding: 5px;
+padding: 10px;
 border: var(--border-strong) 2px solid;}
 
 .merger:hover{margin-right: 30px;
 border-radius: 8px;
-padding: 5px;
+padding: 10px;
 border: var(--green) 2px solid;
 background-color: var(--green-border);}
 
 .index{margin-left: 30px;
 border-radius: 8px;
-padding: 5px;
+padding: 10px;
 border: var(--border-strong) 2px solid;}
 
 .index:hover{margin-left: 30px;
 border-radius: 8px;
-padding: 5px;
+padding: 10px;
 border: var(--green) 2px solid;
 background-color: var(--green-border);}
 
@@ -80,13 +81,13 @@ justify-content: space-between;}
 .fusion{
     margin-right: 30px;
 border-radius: 8px;
-padding: 5px;
+padding: 10px;
 border: var(--border-strong) 2px solid;
 }
 
 .fusion:hover{margin-left: 30px;
 border-radius: 8px;
-padding: 5px;
+padding: 10px;
 border: var(--green) 2px solid;
 background-color: var(--green-border);}
 
@@ -114,6 +115,13 @@ background-color: var(--green-border);}
             <p>Une fois les fichiers déposés, il faut renseigner dans l'interface quelles colonnes des fichiers vont servir à faire le lien pour actualiser les données. L'interface renseigne le nombre d'associations qu'elle peut faire avec les variables sélectionnées, ce qui permet d'ajuster pour trouver celles faisant le plus de correspondances.</p>
             <p>Ensuite on sélectionne les options que l'on veut pour le fichier final. Cette interface peut garder pour le fichier final (Le fichier maître mis a jour) le formatage du fichier maître. C'est-à-dire les couleurs ou les options de style appliquées à ce fichier. Ensuite on choisit le mode d'opération, la tâche que l'on souhaite réaliser à l'aide de l'interface. On peut soit fusionner des fichiers soit surligner les lignes communes aux deux. Une fois ce paramètrage effectué, il reste à sélectionner les colonnes que l'on souhaite conserver. L'interface renseigne si les colonnes sont ajoutées, mises-à-jour ou conserver.</p>
            <p>Enfin l'interface permet de visualiser les premières lignes du fichier avant de télécharger le fichier au format xlsx.</p>
+        </div>
+        <div class="box">
+            <h2>Fusion_colonnes.html</h2>
+            <p>L'interface Fusion-colonnes.html permet de déposer un fichier excel pour en fusionner les colonnes.</p>
+            <p>Une fois le fichier déposé, on peut sélectionner la feuille de calcul dans laquelle on souhaite faire la fusion.</p>
+            <p>l'étape suivante consiste à sélectionner les colonnes que l'on souhaite fusionner. Pour cela elles sont identifiées par leur nom de colonne (valeur sur la premièreligne) et par leur numérotation en Lettre.</p>
+            <p>Une fois un minimum de deux colonnes sélectionnées, on peut choisir si la fusion crée une nouvelle colonne ou si elle en remplace une déjà existante. Dans le premier cas, il est alors demander de renseigner le nom de la colonne qui va être créée, dans le second cas de renseigner le nom de la colonne qui sera écrasée. Ensuite on peut choisir le mode de fusion. Le premier mode est le mode concaténation qui va joindre, avec la valeur séparante renseignée plus bas, les deux ou plusieurs valeurs des colonnes choisies. Le second mode permet de jouer sur la priorité. Le principe est simple on choisit la colonne qui est prioritaire (on établit une liste de priorité) et la valeur de cette colonne que l'on va appélée A sera choisi par l'interface. Si jamais A est vide ça sera la valeur de la colonne B et ainsi de suite.</p>
         </div>
     </body>
 </html>

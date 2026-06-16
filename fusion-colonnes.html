@@ -713,12 +713,69 @@
     border-color: var(--accent);
     color: white;
   }
+
+.nav{display: flex;
+justify-content: space-between;}
+
+.fusion{
+    margin-right: 30px;
+border-radius: 8px;
+padding: 5px;
+border: var(--border-strong) 2px solid;
+}
+
+.fusion:hover{margin-left: 30px;
+border-radius: 8px;
+padding: 5px;
+border: var(--accent) 2px solid;
+background-color: var(--accent-border);}
+
+.merger{margin-right: 30px;
+border-radius: 8px;
+padding: 5px;
+border: var(--border-strong) 2px solid;}
+
+.merger:hover{margin-right: 30px;
+border-radius: 8px;
+padding: 5px;
+border: var(--accent) 2px solid;
+background-color: var(--accent-border);}
+
+.index{margin-left: 30px;
+border-radius: 8px;
+padding: 5px;
+border: var(--border-strong) 2px solid;}
+
+.index:hover{margin-left: 30px;
+border-radius: 8px;
+padding: 5px;
+border: var(--accent) 2px solid;
+background-color: var(--accent-border);}
+
+a{text-decoration: none;
+color: black;}
+
+a:hover{text-decoration: none;
+color: #16a34a;}
+
+body {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  background-color: var(--bg);
+}
+
 </style>
 </head>
 <body>
 
 <div class="container">
   <header>
+     <div class="nav">
+            <a class="index" href="/">Retour vers la page d'extraction</a>
+            <a class="merger" href="/excel-merger.html">Retour vers la fusion de fichiers</a>
+            <a class="fusion" href="/fusion">Retour vers la Fusion de Colonnes</a>
+        </div>
     <h1>Fusion de colonnes Excel</h1>
     <p>Importez votre fichier, sélectionnez les colonnes à fusionner et exportez le résultat.</p>
   </header>
