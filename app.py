@@ -106,7 +106,7 @@ def excel_merger():
     return send_from_directory(".", "excel-merger.html")
 
 @app.route("/fusion")
-def excel_merger():
+def fusion():
     return send_from_directory(".", "fusion-colonnes.html")
 
 
