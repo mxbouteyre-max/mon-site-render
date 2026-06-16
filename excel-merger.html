@@ -712,7 +712,7 @@ color: #18181b;}
   border-radius: var(--r);
   transition: all 0.3s ease;
   padding: 5px;
-  margin-left: 480px;
+  margin-left: 250px;
 
 }
 
@@ -745,6 +745,25 @@ color: #18181b;}
   padding: 5px;
   margin-left: 10px;
 }
+.fusion{color: var(--text);
+  font-family:var(--mono);
+  background-color: var(--amber-border);
+  border : 2px var(--amber) solid;
+  border-radius: var(--r);
+  transition: all 0.3s ease;
+  padding: 5px;
+  margin-left: 10px;
+
+}
+.fusion:hover{
+    background-color: var(--amber-border);
+  transform: scale(1.05);
+
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.6),
+    0 0 25px rgba(252, 201, 34, 0.8);
+}
+
 </style>
 </head>
 <body>
@@ -756,6 +775,7 @@ color: #18181b;}
   <span class="topbar-sub">— fichier excell, classeur excell et csv</span>
   <span class="index"><a href="/" class="lien">Extraction de données</a></span>
   <span class="info"><a href="/information.html" class="lien">Informations</a></span>
+  <span class="fusion"><a href="/fusion" class="lien">Fusion de Colonnes</a></span>
 </div>
 
 <!-- PROGRESS -->

@@ -26,10 +26,10 @@ HEADERS = {
 }
 
 # nombre de requêtes en parallèle
-MAX_WORKERS = 10
+MAX_WORKERS = 30
 
 # pause entre deux requêtes faites par UN même worker (politesse API)
-SLEEP_BETWEEN_CALLS = 0.1
+SLEEP_BETWEEN_CALLS = 0.05
 
 # sauvegarde live du CSV toutes les N zones traitées (au lieu de chaque zone)
 SAVE_EVERY = 50
@@ -133,8 +133,11 @@ def fetch_stores(lat, lon):
 
 coords = []
 
-for lat in range(420, 510, 2):
-    for lon in range(-50, 81, 2):
+# espacement de la grille en dixièmes de degré (ex: 5 = 0.5°, ~50km)
+GRID_STEP = 5
+
+for lat in range(420, 510, GRID_STEP):
+    for lon in range(-50, 81, GRID_STEP):
         coords.append((lat / 10, lon / 10))
 
 coords += [

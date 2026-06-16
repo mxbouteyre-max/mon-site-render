@@ -105,6 +105,10 @@ def information():
 def excel_merger():
     return send_from_directory(".", "excel-merger.html")
 
+@app.route("/fusion")
+def excel_merger():
+    return send_from_directory(".", "fusion-colonnes.html")
+
 
 # ── liste des scripts disponibles ─────────────────────────────────
 @app.route("/api/scripts")
