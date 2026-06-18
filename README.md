@@ -1,0 +1,5 @@
+Ce dépôt github sert à la centralisation des documents permettant de lancer le site extrationsite disponible à l'adresse url suivante : https://extractionsite.onrender.com/
+
+C'est un travail qui a été réalisé dans le cadre d'un stage universitaire réalisé à la fin de ma L3 Miashs. J'ai eu comme mission d'automatiser la collecte de données notamment la collecte des données relatives aux entreprise d'optiques en France. Pour extraire ces données j'ai dans un premier réalisé un ensemble de code python présent dans le dossier cocde_extraction de ce dépôt.
+
+Ensuite j'ai cherché un moyen pratique d'automatiser la tâche de récupération pour que dans 6mois 1an et je ne sais encore, lorsque le besoin de mettre à jour la base de données, cela soit possible, et sans moi dans l'idéal. Je me suis alors penché sur le développement d'une interface web regroupant l'ensemble de ces codes et permettant de choisir et traiter leur exécution. J'ai rajouté dans ce site d'autres outils que j'avais également développé au cours de mon stage. Par exemple, la page excel-merger.html qui permet de fusion deux fichiers excel et de mettre à jour les données de l'un avec celles de l'autre. 
