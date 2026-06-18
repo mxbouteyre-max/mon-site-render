@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>LinkedIn Alumni Parser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --surface: #fff;
+    --border: #d4c9b0;
+    --accent: #1a3a5c;
+    --accent2: #c8502a;
+    --text: #1a1a1a;
+    --muted: #7a6e5f;
+    --success: #1a6b3c;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Fraunces', Georgia, serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--accent);
+    color: #fff;
+    padding: 28px 40px 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 4px solid var(--accent2);
+  }
+  .header h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+  .header h1 span { color: #f5c842; }
+  .header-sub { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 5px; }
+  .counter-pill {
+    background: var(--accent2);
+    color: #fff;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  /* MAIN LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: calc(100vh - 90px);
+  }
+
+  /* LEFT PANEL */
+  .left {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 30px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: #e8f0f8;
+  }
+  .drop-zone input {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-icon { font-size: 32px; margin-bottom: 10px; }
+  .drop-title { font-family: var(--serif); font-size: 15px; color: var(--accent); margin-bottom: 4px; }
+  .drop-sub { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .file-queue {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .file-item.done { border-color: #a3d4b5; background: #f0faf4; color: var(--success); }
+  .file-item.error { border-color: #f5a090; background: #fff5f3; color: var(--accent2); }
+  .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+  .file-status { flex-shrink: 0; margin-left: 8px; }
+
+  .actions { display: flex; flex-direction: column; gap: 8px; }
+  .btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #0f2740; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #145530; }
+  .btn-success:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-outline { background: transparent; color: var(--accent2); border: 1px solid var(--accent2); }
+  .btn-outline:hover { background: var(--accent2); color: #fff; }
+  .btn-outline:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* RIGHT PANEL - TABLE */
+  .right { padding: 24px; overflow-x: auto; }
+
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .table-title { font-family: var(--serif); font-size: 18px; font-weight: 400; color: var(--accent); }
+  .table-meta { font-size: 11px; color: var(--muted); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    background: var(--surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  thead { background: var(--accent); color: #fff; }
+  th {
+    padding: 11px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0ebe0;
+    vertical-align: top;
+    max-width: 220px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #faf7f0; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    background: #e8f0f8;
+    color: var(--accent);
+    margin: 2px 2px 2px 0;
+    white-space: nowrap;
+  }
+  .tag.exp { background: #fff0ec; color: var(--accent2); }
+  .tag.loc { background: #f0faf4; color: var(--success); }
+
+  .empty-table {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-table .big { font-family: var(--serif); font-size: 20px; margin-bottom: 8px; color: var(--accent); }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 12px;
+    transform: translateY(60px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.ok { background: var(--success); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Alumni <span>Scout</span></h1>
+    <div class="header-sub">Parser de profils LinkedIn · Détection ISO · Usage local uniquement</div>
+    <div> <a class="index" href="/">Retour vers la page d'extraction des boutiques</a></div>
+  </div>
+  <div class="counter-pill" id="counterPill">0 profil</div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT -->
+  <div class="left">
+
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".html" multiple/>
+      <div class="drop-icon">📂</div>
+      <div class="drop-title">Déposer les fichiers HTML</div>
+      <div class="drop-sub">Ctrl+S sur chaque profil LinkedIn<br/>puis dépose ici autant de fichiers que tu veux</div>
+    </div>
+
+    <div>
+      <div class="section-label">Fichiers chargés</div>
+      <div class="file-queue" id="fileQueue">
+        <div style="color:var(--muted);font-size:11px;padding:8px 0">Aucun fichier chargé</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="btnParse" disabled>⚡ Analyser les profils</button>
+      <button class="btn btn-success" id="btnCSV" disabled>↓ Télécharger CSV</button>
+      <button class="btn btn-outline" id="btnClear" disabled>✕ Tout vider</button>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="table-header">
+      <div class="table-title">Données extraites</div>
+      <div class="table-meta" id="tableMeta">—</div>
+    </div>
+
+    <div id="tableWrap">
+      <div class="empty-table">
+        <div class="big">Aucune donnée</div>
+        Charge des fichiers HTML et clique sur Analyser
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────
+let files = [];   // {name, content}
+let results = []; // parsed profiles
+
+// ─── UI REFS ──────────────────────────────────────────────────────────────
+const dropZone   = document.getElementById('dropZone');
+const fileInput  = document.getElementById('fileInput');
+const fileQueue  = document.getElementById('fileQueue');
+const btnParse   = document.getElementById('btnParse');
+const btnCSV     = document.getElementById('btnCSV');
+const btnClear   = document.getElementById('btnClear');
+const tableWrap  = document.getElementById('tableWrap');
+const tableMeta  = document.getElementById('tableMeta');
+const counterPill= document.getElementById('counterPill');
+const toast      = document.getElementById('toast');
+
+// ─── FILE LOADING ─────────────────────────────────────────────────────────
+
+fileInput.addEventListener('change', e => handleFiles([...e.target.files]));
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleFiles([...e.dataTransfer.files].filter(f => f.name.endsWith('.html')));
+});
+
+function handleFiles(newFiles) {
+  const readers = newFiles.map(f => new Promise(resolve => {
+    const r = new FileReader();
+    r.onload = () => resolve({ name: f.name, content: r.result });
+    r.readAsText(f, 'utf-8');
+  }));
+
+  Promise.all(readers).then(loaded => {
+    // deduplicate by name
+    const existing = new Set(files.map(f => f.name));
+    const added = loaded.filter(f => !existing.has(f.name));
+    files = [...files, ...added];
+    renderQueue();
+    btnParse.disabled = files.length === 0;
+    btnClear.disabled = files.length === 0;
+    if (added.length) showToast(`${added.length} fichier(s) ajouté(s)`);
+  });
+}
+
+function renderQueue() {
+  if (files.length === 0) {
+    fileQueue.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px 0">Aucun fichier chargé</div>';
+    return;
+  }
+  fileQueue.innerHTML = files.map((f, i) => {
+    const parsed = results.find(r => r._source === f.name);
+    const cls = parsed ? (parsed._error ? 'error' : 'done') : '';
+    const status = parsed ? (parsed._error ? '✕' : '✓') : '⏳';
+    return `<div class="file-item ${cls}">
+      <span class="file-name" title="${esc(f.name)}">${esc(f.name)}</span>
+      <span class="file-status">${status}</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── PARSER ───────────────────────────────────────────────────────────────
+
+btnParse.addEventListener('click', () => {
+  results = [];
+  files.forEach(f => {
+    try {
+      const profile = parseLinkedInHTML(f.content, f.name);
+      results.push(profile);
+    } catch(e) {
+      results.push({ _source: f.name, _error: true, nom: f.name, poste_actuel: 'ERREUR', entreprise_actuelle: '', localisation: '', formations: '', experiences: '', email: '' });
+    }
+  });
+  renderQueue();
+  renderTable();
+  btnCSV.disabled = results.length === 0;
+  counterPill.textContent = `${results.length} profil${results.length > 1 ? 's' : ''}`;
+  showToast(`✓ ${results.length} profil(s) · ${results.filter(r=>r._iso_raw).length} ISO`, true);
+});
+
+function parseLinkedInHTML(html, filename) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  // Remove scripts/styles first
+  doc.querySelectorAll('script, style, noscript, iframe').forEach(el => el.remove());
+
+  // Insert newlines before block elements (textContent doesn't add them, unlike innerText)
+  doc.querySelectorAll('div,p,li,span,section,article,h1,h2,h3,h4,br').forEach(el => {
+    el.insertAdjacentText('beforebegin', '\n');
+  });
+
+  const rootEl = doc.getElementById('root') || doc.body || doc.documentElement;
+  const rawText = rootEl.textContent || '';
+
+  const lines = rawText
+    .replace(/[\u00a0\u202f]/g, ' ')
+    .replace(/[\u2018\u2019\u201a\u201b]/g, "'") // normalize curly apostrophes
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length >= 2 && l.length <= 350);
+
+  // ── NOM ── (title tag = source la plus fiable)
+  const titleEl = doc.querySelector('title');
+  let nom = '';
+  if (titleEl) {
+    const m = titleEl.textContent.match(/^([^|]+)\|/);
+    if (m) nom = m[1].trim().replace(/LinkedIn/gi, '').trim();
+  }
+
+  // ── HELPERS ──
+  const SECTION_MARKERS = ['Expérience', 'Formation', 'Compétences', 'Recommandations',
+    "Centres d'intérêt", 'Langues', 'Certifications', 'Projets', 'Activité', 'Bénévolat'];
+  const SKIP_STARTS = ['Ajouter', 'Modifier', 'Mettre', 'Voir plus', 'En savoir',
+    'Tout afficher', 'Se connecter', 'Suivre', 'Passer au', 'Options de pub',
+    'Pourquoi est-ce', 'Gérer les', 'Masquer', 'Signaler', 'Envoyer', 'Demandez'];
+  const SKIP_EXACT = ['Message', 'Vous', 'Coordonnées', "L'essentiel", 'Activité',
+    'Intitulé de poste', 'Organisation', '· 1er', '· 2e', '· 3e et +', '·'];
+
+  function skip(l) {
+    if (SKIP_EXACT.includes(l)) return true;
+    if (SKIP_STARTS.some(s => l.startsWith(s))) return true;
+    if (/^\d[\d\s]*(abonnés|relations|notification|ou \+)/.test(l)) return true;
+    if (/^et \d+ autre/.test(l)) return true;
+    return false;
+  }
+
+  // Section bounds helper
+  function sectionBounds(sectionName) {
+    const start = lines.findIndex(l => l === sectionName);
+    if (start < 0) return null;
+    let end = lines.length;
+    for (const s of SECTION_MARKERS) {
+      if (s === sectionName) continue;
+      const idx = lines.indexOf(s, start + 1);
+      if (idx > start && idx < end) end = idx;
+    }
+    return { start, end };
+  }
+
+  // ── LOCALISATION ──
+  // LinkedIn affiche la localisation juste après le bloc header, avant "Coordonnées"
+  // Formes possibles :
+  //   • "Ville, Région, Pays"  (3 parties)
+  //   • "Ville, Pays"          (2 parties)
+  //   • "Région et périphérie" (1 partie : ex. "Lyon et périphérie")
+  //   • "Pays"                 (1 partie : ex. "France")
+  // Stratégie : on cherche la ligne entre le nom et "Coordonnées" qui n'est pas
+  // un titre de section, un bouton, une URL, une ligne avec "·", ni un email.
+  const locRe = /^[A-ZÀ-Üa-zà-üÉÈÊËÀÂÎÏÔÙÛÜÇŒÆéèêëàâîïôùûüçœæ][^@\n·]{1,80}(,\s*[A-ZÀ-Üa-zà-üÉÈÊËÀÂÎÏÔÙÛÜÇŒÆéèêëàâîïôùûüçœæ][^@\n·]{1,60}){0,2}$/;
+  // Listes de pays connus pour identifier une localisation à 1 seul token
+  const PAYS_CONNUS = ['France','Belgique','Suisse','Luxembourg','Canada','Maroc',
+    'Tunisie','Algérie','Sénégal','Allemagne','Espagne','Italie','Portugal','Royaume-Uni',
+    'États-Unis','Pays-Bas','Australie','Québec'];
+  let localisation = '';
+  // Recherche dans les 35 premières lignes (bloc header du profil)
+  const coordIdx = lines.findIndex(l => l === 'Coordonnées');
+  const searchEnd = coordIdx > 0 ? Math.min(coordIdx + 2, 35) : 35;
+  for (let i = 0; i < searchEnd; i++) {
+    const l = lines[i];
+    if (!l || l.includes('@') || l.includes('http') || l.includes('·')) continue;
+    if (skip(l)) continue;
+    if (l === nom) continue;
+    // Pays seul
+    if (PAYS_CONNUS.includes(l)) { localisation = l; break; }
+    // Ligne "Ville et périphérie" ou "Région et périphérie"
+    if (/\bet\b/i.test(l) && locRe.test(l) && l.length < 60) { localisation = l; break; }
+    // Ligne avec virgule(s) : "Ville, Région" ou "Ville, Région, Pays"
+    if (l.includes(',') && locRe.test(l) && !l.endsWith(', Company')) { localisation = l; break; }
+  }
+
+  // ── DÉCOUPAGE VILLE / RÉGION / PAYS ──
+  function parseLocation(loc) {
+    if (!loc || loc === '—') return { ville: '', region: '', pays: '' };
+    const parts = loc.split(',').map(p => p.trim());
+    if (parts.length === 1) {
+      // Un seul token : pays ou "Ville et périphérie"
+      if (PAYS_CONNUS.includes(parts[0])) return { ville: '', region: '', pays: parts[0] };
+      if (/\bet\b/i.test(parts[0])) return { ville: parts[0], region: '', pays: '' };
+      return { ville: parts[0], region: '', pays: '' };
+    }
+    if (parts.length === 2) {
+      // "Ville, Pays" ou "Ville, Région"
+      const last = parts[1];
+      if (PAYS_CONNUS.includes(last)) return { ville: parts[0], region: '', pays: last };
+      return { ville: parts[0], region: last, pays: '' };
+    }
+    // 3+ parties → "Ville, Région, Pays"
+    return { ville: parts[0], region: parts[1], pays: parts.slice(2).join(', ') };
+  }
+
+  // ── HELPER : parse date line "oct. 2023 - aujourd'hui · 2 ans" → {debut, fin} ──
+  function parseDateLine(l) {
+    // Normalize separators
+    const norm = l.replace(/·.*$/, '').trim(); // remove duration after ·
+    const parts = norm.split(/\s*[-–]\s*/);
+    const clean = s => s.trim().replace(/^(jan|fév|mar|avr|mai|juin|juil|août|sept|oct|nov|déc)\.?\s*/i, '$& ').trim();
+    const debut = parts[0] ? clean(parts[0]) : '';
+    const fin   = parts[1] ? clean(parts[1]) : '';
+    return { debut, fin };
+  }
+
+  function isDateLine(l) {
+    return /\d{4}/.test(l) && (l.includes('·') || l.includes('–') || l.includes("aujourd") || /^\w{3,4}\.\s*\d{4}/.test(l));
+  }
+
+  // ── EXPÉRIENCES (la plus récente) ──
+  // Trois structures LinkedIn observées :
+  // A) CHAPEAU : "Optical Center" / "14 ans 7 mois" / "Directeur magasin" / "CDI" / date
+  // B) CHAPEAU+TEMPS : "Optical Center" / "Temps plein · 9 ans" / "Responsable" / date
+  // C) SIMPLE : "Opticien" / "Optical Center · CDI" / date
+  const expBounds = sectionBounds('Expérience');
+  let exp1_poste = '', exp1_entreprise = '', exp1_debut = '', exp1_fin = '';
+
+  // Helpers
+  const EXP_SKIP = new Set(['CDI','CDD','Alternance','Contrat en alternance','Stage',
+    'Freelance','Intérim','Bénévolat','Apprentissage','Auto-entrepreneur','Indépendant',
+    'Temps plein','Temps partiel','plus','Étudiant stagiaire','Pause professionnelle',
+    'Reconversion professionnelle']);
+  const expIsJunk = l =>
+    skip(l) ||
+    EXP_SKIP.has(l) ||
+    /^(Contrat|Temps)\s+/i.test(l) ||          // "Contrat en..." "Temps plein..."
+    /^\d+\s*(an|mois)/i.test(l) ||             // "14 ans 7 mois"
+    /^[-•]\s|^o[\t ]{1,6}\S/.test(l) ||        // bullets description
+    /^(Missions|Activités)\s*:/i.test(l) ||    // en-têtes de description
+    /\d{5}/.test(l) ||                          // code postal
+    /\b(sur site|hybride|télétravail)\b/i.test(l) ||
+    (locRe.test(l) && !l.includes('·') && (l.includes(',') || /\bet\b/.test(l))) ||     // ville seule : "Paris, France" ou "Lyon et périphérie"
+    l.length > 100;                             // description longue
+
+  // Ligne "Enseigne · CDI" → extrait l'enseigne, '' si localisation ou date
+  const extractEns = l => {
+    if (isDateLine(l)) return '';
+    if (/\b(sur site|hybride|télétravail)\b/i.test(l)) return '';
+    const before = l.split('·')[0].trim();
+    if (locRe.test(before) && (before.includes(',') || /\bet\b/.test(before))) return ''; // "Rouffiac-Tolosan, Occitanie · Sur site"
+    return before;
+  };
+
+  if (expBounds) {
+    const S = expBounds.start + 1, E = expBounds.end;
+    let i = S;
+
+    // Cherche la première ligne non-junk de la section
+    while (i < E && (expIsJunk(lines[i]) || isDateLine(lines[i]))) i++;
+
+    if (i < E) {
+      const first = lines[i];
+
+      // ── CAS A / B / D : CHAPEAU ──
+      // Signature : ligne[i] sans · , ET ligne[i+1] est :
+      //   A) une durée globale seule  "14 ans 7 mois"
+      //   B) "Temps plein · X ans"
+      //   D) "CDI · X ans" / "CDD · X ans" (contrat + durée sur une ligne)
+      const next1 = lines[i+1] || '';
+      const isChapeauCase =
+        !first.includes('·') &&
+        (
+          /^\d+\s*(an|mois)/i.test(next1) ||
+          (/Temps\s+(plein|partiel)/i.test(next1) && /\d+\s*(an|mois)/i.test(next1)) ||
+          (/^(CDI|CDD|Alternance|Stage|Freelance|Intérim|Contrat)\b/i.test(next1) && /\d+\s*(an|mois)/i.test(next1))
+        );
+
+      if (isChapeauCase) {
+        exp1_entreprise = first;
+        i += 2; // saute enseigne + durée/contrat global
+        // saute les éventuels types de contrat ou durées résiduelles
+        while (i < E && (
+          EXP_SKIP.has(lines[i]) ||
+          /^(Contrat|Temps)\s+/i.test(lines[i]) ||
+          /^\d+\s*(an|mois)/i.test(lines[i]) ||
+          (/^(CDI|CDD|Alternance|Stage|Freelance|Intérim)\b/i.test(lines[i]) && /\d+\s*(an|mois)/i.test(lines[i]))
+        )) i++;
+        // ligne suivante non-junk sans · = poste
+        while (i < E && (expIsJunk(lines[i]) || isDateLine(lines[i]) || lines[i].includes('·'))) i++;
+        if (i < E) {
+          exp1_poste = lines[i]; i++;
+          // saute CDI et trouve la date
+          while (i < E && (EXP_SKIP.has(lines[i]) || /^(Contrat|Temps)\s+/i.test(lines[i]))) i++;
+          if (i < E && isDateLine(lines[i])) {
+            const d = parseDateLine(lines[i]);
+            exp1_debut = d.debut; exp1_fin = d.fin;
+          }
+        }
+
+      // ── CAS C : SIMPLE ──
+      // "Opticien" / "Optical Center · CDI" / date
+      } else {
+        exp1_poste = first; i++;
+        // cherche enseigne (ligne avec ·) et date dans les lignes suivantes
+        while (i < E) {
+          const nl = lines[i];
+          if (isDateLine(nl)) {
+            if (!exp1_debut) { const d = parseDateLine(nl); exp1_debut = d.debut; exp1_fin = d.fin; }
+            i++; continue;
+          }
+          if (EXP_SKIP.has(nl) || /^(Contrat|Temps)\s+/i.test(nl)) { i++; continue; }
+          if (nl.includes('·')) {
+            if (!exp1_entreprise) { const e = extractEns(nl); if (e) exp1_entreprise = e; }
+            i++; continue;
+          }
+          break; // ligne texte sans · = on s'arrête (descriptions)
+        }
+      }
+    }
+  }
+
+  // ── FORMATIONS (2 max, les plus récentes en premier) ──
+  // Structure LinkedIn : École → Diplôme → Dates (répété)
+  const formList = []; // [{ecole, diplome, debut, fin}]
+  const formBounds = sectionBounds('Formation');
+
+  const FORM_STOP = ["Entreprises","Newsletters","Écoles","Groupes",
+    "Centres d'intérêt","Langues","Compétences","Tout afficher"];
+
+  function isFormDate(l) {
+    return /^\d{4}/.test(l) || /^(jan|fév|mar|avr|mai|juin|juil|août|sept|oct|nov|déc)/i.test(l);
+  }
+  function isFormNoise(l) {
+    return skip(l) || l.length < 3 || l.length > 200 || l.endsWith(', Company') || FORM_STOP.includes(l);
+  }
+
+  if (formBounds) {
+    let i = formBounds.start + 1;
+
+    while (i < formBounds.end) {
+      const l = lines[i];
+
+      if (isFormNoise(l)) { i++; continue; }
+      if (FORM_STOP.includes(l)) break;
+
+      // Date line → attacher à la dernière formation
+      if (isFormDate(l)) {
+        if (formList.length > 0) {
+          const parts = l.split(/\s*[–-]\s*/);
+          formList[formList.length - 1].debut = (parts[0] || '').trim();
+          formList[formList.length - 1].fin   = (parts[1] || '').trim();
+        }
+        i++; continue;
+      }
+
+      // Ligne texte : école ou diplôme ?
+      const last = formList[formList.length - 1];
+      if (!last || last.diplome !== '') {
+        // Nouvelle formation : cette ligne est l'école
+        formList.push({ ecole: l, diplome: '', debut: '', fin: '' });
+      } else {
+        // La formation courante n'a pas encore de diplôme : c'est le diplôme
+        last.diplome = l;
+      }
+      i++;
+    }
+  }
+
+  // ── URL LINKEDIN ──
+  let linkedinUrl = '';
+
+  // 1. Commentaire "saved from url" (format Chrome/Edge Ctrl+S) — source la plus fiable
+  const savedFromMatch = html.match(/<!--\s*saved from url=\(\d+\)(https?:\/\/[^\s>]+?linkedin\.com\/in\/[^\s>]+?)\s*-->/i);
+  if (savedFromMatch) linkedinUrl = savedFromMatch[1];
+
+  // 2. Balise <link rel="canonical">
+  if (!linkedinUrl) {
+    const canonical = doc.querySelector('link[rel="canonical"]');
+    if (canonical) linkedinUrl = canonical.getAttribute('href') || '';
+  }
+
+  // 3. Meta og:url
+  if (!linkedinUrl) {
+    const ogUrl = doc.querySelector('meta[property="og:url"]');
+    if (ogUrl) linkedinUrl = ogUrl.getAttribute('content') || '';
+  }
+
+  // 4. Regex fallback dans le HTML brut
+  if (!linkedinUrl) {
+    const m = html.match(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[a-zA-Z0-9\-_%]+\/?/);
+    if (m) linkedinUrl = m[0];
+  }
+
+  // Nettoie les paramètres de tracking
+  linkedinUrl = linkedinUrl.split('?')[0].replace(/\/$/, '');
+
+  // ── EMAIL ──
+  const emailMatch = rawText.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g);
+  const email = emailMatch
+    ? [...new Set(emailMatch)].filter(e =>
+        !e.includes('linkedin') && !e.includes('sentry') &&
+        !e.includes('example') && !e.includes('pixel')
+      ).join(', ')
+    : '';
+
+  // Build flat return object with exp1/exp2/exp3 and form1/form2/form3 columns
+  const locParsed = parseLocation(localisation);
+  const row = {
+    _source: filename,
+    nom: nom || '—',
+    localisation: localisation || '—',
+    ville:   locParsed.ville  || '—',
+    region:  locParsed.region || '—',
+    pays:    locParsed.pays   || '—',
+  };
+
+  // Expérience 1 uniquement (la plus récente)
+  row.exp1_poste      = exp1_poste;
+  row.exp1_entreprise = exp1_entreprise;
+  row.exp1_debut      = exp1_debut;
+  row.exp1_fin        = exp1_fin;
+
+  // Formations 1 uniquement (la plus récente)
+  const f0 = formList[0];
+  row[`form1_ecole`]   = f0 ? f0.ecole   : '';
+  row[`form1_diplome`] = f0 ? f0.diplome : '';
+  row[`form1_debut`]   = f0 ? f0.debut   : '';
+  row[`form1_fin`]     = f0 ? f0.fin     : '';
+
+  row.email = email || '—';
+  row.linkedin_url = linkedinUrl || '—';
+
+  // ── DÉTECTION ISO — uniquement dans la section Formation ──
+  // Stratégie : isoler le bloc HTML entre la section Formation et la section suivante,
+  // puis chercher "Institut Supérieur d'Optique" dedans.
+  let iso_found = false;
+
+  // 1. On cherche dans toutes les écoles déjà extraites (formList, toutes formations)
+  //    Pour couvrir les formations au-delà des 2 max extraites, on re-parcourt
+  //    toutes les lignes de la section Formation sans limite.
+  if (formBounds) {
+    let i = formBounds.start + 1;
+    while (i < formBounds.end) {
+      const l = lines[i];
+      if (/institut\s+sup[eé]rieur\s+d[''\u2019]optique/i.test(l)) {
+        iso_found = true;
+        break;
+      }
+      i++;
+    }
+  }
+
+  // 2. Fallback : chercher dans le bloc HTML brut de la section Formation
+  //    (utile si le nom apparaît dans un aria-label ou attribut HTML non extrait dans lines[])
+  if (!iso_found) {
+    // Trouve les bornes HTML de la section Formation via les ancres connues
+    const formSectionRe = /id=["'][^"']*profile_education[^"']*["']|aria-label=["'][^"']*[Ff]ormation[^"']*["']|componentkey=["'][^"']*[Ee]ducation[^"']*["']/;
+    const formStart = html.search(formSectionRe);
+    if (formStart >= 0) {
+      // On prend une fenêtre de 30 000 chars après le début de la section
+      const formSlice = html.slice(formStart, formStart + 30000);
+      if (/institut\s+sup[eé]rieur\s+d[''\u2019&#39;]optique/i.test(formSlice) ||
+          /school\/10454973/i.test(formSlice)) {
+        iso_found = true;
+      }
+    }
+  }
+
+  row.iso = iso_found ? 'Oui ✓' : 'Non';
+  row._iso_raw = iso_found;
+
+  // ── DIPLÔME & ANNÉE ISO ──
+  // Cherche dans formList la formation ISO pour extraire le diplôme et l'année de fin
+  let iso_diplome = '';
+  let iso_annee = '';
+  if (iso_found) {
+    // Cherche dans toutes les formations parsées
+    const isoForm = formList.find(f =>
+      /institut\s+sup[eé]rieur\s+d[''\u2019]optique/i.test(f.ecole)
+    );
+    if (isoForm) {
+      iso_diplome = isoForm.diplome || '';
+      iso_annee   = isoForm.fin    || isoForm.debut || '';
+    }
+
+    // Fallback : re-parser la section formation sans limite de 2 pour trouver ISO
+    if (!iso_diplome && formBounds) {
+      let i = formBounds.start + 1;
+      let inIso = false;
+      let tempDiplome = '';
+      while (i < formBounds.end) {
+        const l = lines[i];
+        if (/institut\s+sup[eé]rieur\s+d[''\u2019]optique/i.test(l)) {
+          inIso = true;
+          i++; continue;
+        }
+        if (inIso) {
+          if (isFormDate(l)) {
+            const parts = l.split(/\s*[–-]\s*/);
+            iso_annee = (parts[1] || parts[0] || '').trim();
+            if (!iso_diplome) iso_diplome = tempDiplome;
+            break;
+          }
+          if (!isFormNoise(l) && !tempDiplome) {
+            tempDiplome = l;
+          }
+          i++; continue;
+        }
+        i++;
+      }
+      if (!iso_diplome) iso_diplome = tempDiplome;
+    }
+  }
+  row.iso_diplome = iso_diplome;
+  row.iso_annee   = iso_annee;
+
+  return row;
+}
+
+// ─── TABLE RENDER ─────────────────────────────────────────────────────────
+
+function renderTable() {
+  if (results.length === 0) {
+    tableWrap.innerHTML = '<div class="empty-table"><div class="big">Aucune donnée</div>Charge des fichiers HTML et clique sur Analyser</div>';
+    tableMeta.textContent = '—';
+    return;
+  }
+
+  const isoCount = results.filter(r => r._iso_raw).length;
+  tableMeta.textContent = `${results.length} profil(s) · ${isoCount} ISO · extrait le ${new Date().toLocaleDateString('fr-FR')}`;
+
+  function cell(val) {
+    return val ? `<span style="font-size:12px">${esc(val)}</span>` : '<span style="color:var(--muted)">—</span>';
+  }
+
+  function locCell(r) {
+    const loc = r.localisation !== '—' ? `<span class="tag loc" style="font-size:10px">${esc(r.localisation)}</span>` : '';
+    const parts = [
+      r.ville  !== '—' ? `<small><b>🏙</b> ${esc(r.ville)}</small>`  : '',
+      r.region !== '—' ? `<small><b>🗺</b> ${esc(r.region)}</small>` : '',
+      r.pays   !== '—' ? `<small><b>🌍</b> ${esc(r.pays)}</small>`   : '',
+    ].filter(Boolean).join('<br>');
+    return `${loc}${parts ? '<br>' + parts : ''}`;
+  }
+
+  const rows = results.map(r => `
+    <tr>
+      <td><strong>${esc(r.nom)}</strong><br>${locCell(r)}</td>
+      <td>${cell(r.exp1_entreprise)}</td>
+      <td>${cell(r.exp1_poste)}</td>
+      <td>${cell(r.exp1_debut)}</td>
+      <td>${cell(r.exp1_fin || (r.exp1_debut ? "aujourd'hui" : ''))}</td>
+      <td>${cell(r.form1_ecole)}</td>
+      <td>${cell(r.form1_diplome)}</td>
+      <td>${cell(r.form1_debut)}</td>
+      <td>${cell(r.form1_fin)}</td>
+      <td>${r._iso_raw
+        ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#f0faf4;color:var(--success);border:1px solid #a3d4b5;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;white-space:nowrap">✓ Oui</span>`
+        : `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff5f5;color:#b04040;border:1px solid #f5c0c0;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;white-space:nowrap">✕ Non</span>`
+      }</td>
+      <td>${r._iso_raw ? cell(r.iso_diplome) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${r._iso_raw ? cell(r.iso_annee) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${esc(r.email)}</td>
+      <td>${r.linkedin_url && r.linkedin_url !== '—' ? `<a href="${esc(r.linkedin_url)}" target="_blank" style="color:var(--accent);text-decoration:none;word-break:break-all;font-size:11px">↗ ${esc(r.linkedin_url.replace('https://www.linkedin.com/in/','').replace('https://linkedin.com/in/',''))}</a>` : '<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`).join('');
+
+  tableWrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Nom / Localisation</th>
+          <th>Enseigne</th>
+          <th>Titre du poste</th>
+          <th>Début poste</th>
+          <th>Fin poste</th>
+          <th>École</th>
+          <th>Titre de formation</th>
+          <th>Début formation</th>
+          <th>Fin formation</th>
+          <th style="white-space:nowrap">🔭 ISO</th>
+          <th>Diplôme ISO</th>
+          <th>Année ISO</th>
+          <th>Email</th>
+          <th>Profil LinkedIn</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ─── CSV EXPORT ───────────────────────────────────────────────────────────
+
+btnCSV.addEventListener('click', () => {
+  const headers = [
+    'Nom', 'Localisation', 'Ville', 'Région', 'Pays',
+    'Enseigne', 'Titre du poste', 'Début poste', 'Fin poste',
+    'École', 'Titre de formation', 'Début formation', 'Fin formation',
+    'ISO', 'Diplôme ISO', 'Année ISO', 'Email', 'Profil LinkedIn', 'Fichier source'
+  ];
+  const rows = results.map(r => [
+    r.nom, r.localisation, r.ville, r.region, r.pays,
+    r.exp1_entreprise, r.exp1_poste, r.exp1_debut, r.exp1_fin,
+    r.form1_ecole, r.form1_diplome, r.form1_debut, r.form1_fin,
+    r.iso, r.iso_diplome, r.iso_annee, r.email, r.linkedin_url, r._source
+  ]);
+  const escape = v => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(escape).join(';')).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `alumni_linkedin_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('↓ CSV téléchargé !', true);
+});
+
+// ─── CLEAR ────────────────────────────────────────────────────────────────
+
+btnClear.addEventListener('click', () => {
+  files = []; results = [];
+  fileInput.value = '';
+  renderQueue();
+  renderTable();
+  btnParse.disabled = true;
+  btnCSV.disabled = true;
+  btnClear.disabled = true;
+  counterPill.textContent = '0 profil';
+  tableMeta.textContent = '—';
+  showToast('Tout effacé');
+});
+
+// ─── TOAST ────────────────────────────────────────────────────────────────
+
+function showToast(msg, ok = false) {
+  toast.textContent = msg;
+  toast.className = 'toast show' + (ok ? ' ok' : '');
+  setTimeout(() => toast.className = 'toast', 2500);
+}
+
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── START ────────────────────────────────────────────────────────────────
+</script>
+</body>
+</html>

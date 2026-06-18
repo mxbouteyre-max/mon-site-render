@@ -109,6 +109,10 @@ def excel_merger():
 def fusion():
     return send_from_directory(".", "fusion-colonnes.html")
 
+@app.route("/linkedIn")
+def linkedIn():
+    return send_from_directory(".", "parser_linkedIn.html")
+
 
 # ── liste des scripts disponibles ─────────────────────────────────
 @app.route("/api/scripts")
