@@ -505,6 +505,12 @@ tbody tr:hover td { background: var(--card2); }
 td.td-upd { background: rgba(22,163,74,0.08); color: var(--green); font-weight: 600; }
 td.td-new { background: rgba(217,119,6,0.07); color: var(--amber); font-weight: 500; }
 td.td-added { background: rgba(37,99,235,0.05); }
+tr.row-closed td { background: rgba(113,113,122,0.06); color: var(--text2); }
+.status-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; }
+.status-nouveau { background: var(--blue-bg); color: var(--blue); border:1px solid var(--blue-border); }
+.status-maj { background: var(--green-bg); color: var(--green); border:1px solid var(--green-border); }
+.status-inchange { background: var(--bg); color: var(--text2); border:1px solid var(--border); }
+.status-fermee { background: #fafafa; color: var(--text3); border:1px solid var(--border); text-decoration: line-through; }
 
 .tbl-note { font-size: 11px; color: var(--text3); margin-top: 6px; }
 
@@ -945,6 +951,10 @@ color: #18181b;}
           <div class="legend-item"><div class="ldot" style="background:var(--green-bg);border:1.5px solid var(--green-border)"></div> Mise à jour (valeur remplacée si non vide dans le MAJ)</div>
           <div class="legend-item"><div class="ldot" style="background:var(--amber-bg);border:1.5px solid var(--amber-border)"></div> Nouvelle colonne à ajouter</div>
         </div>
+        <div class="callout callout-info" id="mergeRowsInfo">
+          <div class="callout-icon">💡</div>
+          <div>Deux colonnes seront ajoutées automatiquement au résultat : <strong>update</strong> (nouveau / maj / inchangé / fermée) et <strong>date_maj</strong> (date du jour pour les lignes nouvelles ou modifiées).</div>
+        </div>
         <div class="col-panels">
           <div class="col-panel">
             <div class="col-panel-head">
@@ -996,6 +1006,7 @@ color: #18181b;}
         <div class="legend" id="mergeLegend" style="padding-top:0; margin-bottom:10px;">
           <div class="legend-item"><div class="ldot" style="background:rgba(22,163,74,0.12);border:1.5px solid var(--green-border)"></div> Valeur mise à jour</div>
           <div class="legend-item"><div class="ldot" style="background:rgba(217,119,6,0.1);border:1.5px solid var(--amber-border)"></div> Nouvelle ligne (du MAJ)</div>
+          <div class="legend-item"><div class="ldot" style="background:rgba(113,113,122,0.1);border:1.5px solid var(--border)"></div> Ligne fermée (absente du MAJ)</div>
         </div>
         <div class="legend hidden" id="highlightLegend" style="padding-top:0; margin-bottom:10px;">
           <div class="hl-legend-item"><div class="hl-dot" id="hlLegendDot"></div> Ligne commune aux deux fichiers (surlignée)</div>
@@ -1086,6 +1097,7 @@ function setMode(mode) {
   document.getElementById('modeBtnHighlight').classList.toggle('active-mode', mode==='highlight');
   document.getElementById('colorPickerRow').classList.toggle('hidden', mode!=='highlight');
   document.getElementById('mergeModeLegend').classList.toggle('hidden', mode==='highlight');
+  document.getElementById('mergeRowsInfo').classList.toggle('hidden', mode==='highlight');
   // Update run button label
   const btn = document.getElementById('btnRun');
   if(mode==='highlight') btn.innerHTML='🖍 Surligner les lignes communes';
@@ -1219,8 +1231,8 @@ function onKeyChange() {
   bar.classList.remove('hidden');
   bar.innerHTML = `
     <div class="chip chip-g">✓ ${matched} boutiques trouvées dans les deux fichiers</div>
-    ${unmatched>0 ? `<div class="chip chip-a">⚠ ${unmatched} lignes du maître sans correspondance</div>` : ''}
-    ${onlyU>0 ? `<div class="chip chip-z">⚠ ${onlyU} lignes du MAJ sans correspondance (ignorées)</div>` : ''}
+    ${unmatched>0 ? `<div class="chip chip-a">⚠ ${unmatched} lignes du maître sans correspondance (seront marquées « fermée »)</div>` : ''}
+    ${onlyU>0 ? `<div class="chip chip-g">✦ ${onlyU} lignes du MAJ sans correspondance (seront ajoutées comme nouvelles)</div>` : ''}
   `;
 
   // summary in header
@@ -1306,19 +1318,31 @@ function runHighlight() {
 }
 
 // ── MERGE ────────────────────────────────────────────────────────────────────
+function formatDateFr(d) {
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 function runMerge() {
   const km = document.getElementById('keyMain').value;
   const ku = document.getElementById('keyUpdate').value;
+  const today = formatDateFr(new Date());
 
   // Index update by key
   const idx={};
   updateData.forEach(r=>{ idx[String(r[ku]).trim().toLowerCase()]=r; });
 
-  // Merge main
+  // Index main by key (pour repérer les lignes du MAJ absentes du maître)
+  const mainIdx={};
+  mainData.forEach(r=>{ mainIdx[String(r[km]).trim().toLowerCase()]=r; });
+
+  // 1) Parcours du maître : lignes mises à jour, inchangées, ou fermées
   merged = mainData.map(row=>{
     const key = String(row[km]).trim().toLowerCase();
     const urow = idx[key];
-    const out={__matched__:!!urow, __updCols__:[]};
+    const out={__matched__:!!urow, __updCols__:[], __isNew__:false};
 
     mainCols.forEach(c=>{
       if(!selMain.has(c)) return;
@@ -1334,7 +1358,40 @@ function runMerge() {
       if(selUpdate.has(c) && !mainCols.includes(c))
         out[c] = urow ? urow[c] : '';
     });
+
+    if(!urow){
+      out.update = 'fermée';
+      out.date_maj = '';
+    } else if(out.__updCols__.length>0){
+      out.update = 'maj';
+      out.date_maj = today;
+    } else {
+      out.update = 'inchangé';
+      out.date_maj = '';
+    }
     return out;
+  });
+
+  // 2) Lignes du MAJ absentes du maître : ajoutées comme nouvelles
+  updateData.forEach(urow=>{
+    const key = String(urow[ku]).trim().toLowerCase();
+    if(mainIdx[key]) return; // déjà traitée ci-dessus
+
+    const out={__matched__:false, __updCols__:[], __isNew__:true};
+
+    mainCols.forEach(c=>{
+      if(!selMain.has(c)) return;
+      // La colonne du maître peut ne pas exister dans le MAJ sous le même nom
+      out[c] = urow[c]!==undefined ? urow[c] : '';
+    });
+    updateCols.forEach(c=>{
+      if(selUpdate.has(c) && !mainCols.includes(c))
+        out[c] = urow[c]!==undefined ? urow[c] : '';
+    });
+
+    out.update = 'nouveau';
+    out.date_maj = today;
+    merged.push(out);
   });
 
   showStep4();
@@ -1345,6 +1402,10 @@ function getOutCols(){
   const cols=[];
   mainCols.forEach(c=>{ if(selMain.has(c)) cols.push(c); });
   updateCols.forEach(c=>{ if(selUpdate.has(c)&&!mainCols.includes(c)) cols.push(c); });
+  if(currentMode==='merge'){
+    cols.push('update');
+    cols.push('date_maj');
+  }
   return cols;
 }
 
@@ -1357,6 +1418,8 @@ function showStep4(){
   const matched=merged.filter(r=>r.__matched__).length;
   const updated=merged.filter(r=>r.__updCols__&&r.__updCols__.length>0).length;
   const unmatched=merged.filter(r=>!r.__matched__).length;
+  const nbNouveau=merged.filter(r=>r.update==='nouveau').length;
+  const nbFermee=merged.filter(r=>r.update==='fermée').length;
 
   if(isHighlight){
     const col = HIGHLIGHT_COLORS[selectedColorIdx];
@@ -1373,9 +1436,9 @@ function showStep4(){
   } else {
     document.getElementById('statsRow').innerHTML=`
       <div class="stat-box"><div class="stat-num">${total}</div><div class="stat-lbl">Lignes au total</div></div>
-      <div class="stat-box"><div class="stat-num g">${matched}</div><div class="stat-lbl">Correspondances trouvées</div></div>
-      <div class="stat-box"><div class="stat-num a">${updated}</div><div class="stat-lbl">Cellules mises à jour</div></div>
-      <div class="stat-box"><div class="stat-num b">${unmatched}</div><div class="stat-lbl">Lignes sans correspondance</div></div>
+      <div class="stat-box"><div class="stat-num a">${updated}</div><div class="stat-lbl">Lignes mises à jour</div></div>
+      <div class="stat-box"><div class="stat-num g">${nbNouveau}</div><div class="stat-lbl">Nouvelles lignes</div></div>
+      <div class="stat-box"><div class="stat-num b">${nbFermee}</div><div class="stat-lbl">Lignes fermées</div></div>
     `;
     document.getElementById('mergeLegend').classList.remove('hidden');
     document.getElementById('highlightLegend').classList.add('hidden');
@@ -1408,13 +1471,19 @@ function renderTable(){
   document.getElementById('tBody').innerHTML=merged.slice(0,50).map(row=>{
     const us=new Set(row.__updCols__||[]);
     const isMatched=row.__matched__;
+    const isClosed = !isHighlight && row.update==='fermée';
     const rowStyle = isHighlight && isMatched ? `style="background:${hlColor}"` : '';
-    return `<tr ${rowStyle}>`+cols.map(c=>{
+    const rowCls = isClosed ? 'row-closed' : '';
+    return `<tr class="${rowCls}" ${rowStyle}>`+cols.map(c=>{
       const v=row[c]!==undefined?row[c]:'';
       let cls='';
       if(!isHighlight){
         if(row.__isNew__) cls='td-added';
         else if(us.has(c)) cls='td-upd';
+      }
+      if(c==='update' && !isHighlight){
+        const slug = String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+        return `<td class="${cls}"><span class="status-badge status-${slug}">${esc(String(v))}</span></td>`;
       }
       return `<td class="${cls}" title="${String(v)}">${String(v).substring(0,100)}</td>`;
     }).join('')+'</tr>';
@@ -1454,6 +1523,14 @@ function doExportMerge(btn){
     ws = Object.assign({}, origWs);
     // Overwrite cell values with merged data
     const header = cols;
+    // Réécrit la ligne d'en-tête (row 1) avec les colonnes finales,
+    // pour que les nouvelles colonnes (update, date_maj, etc.) apparaissent.
+    header.forEach((col, ci) => {
+      const cellRef = XLSX.utils.encode_cell({r:0, c:ci});
+      if(!ws[cellRef]) ws[cellRef] = {};
+      ws[cellRef].v = col;
+      ws[cellRef].t = 's';
+    });
     // Re-write data starting row 2 (row 1 = header)
     rows.forEach((row, ri) => {
       cols.forEach((col, ci) => {

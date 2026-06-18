@@ -9,7 +9,7 @@ Logique :
     produits dans code_extraction/ en un seul fichier .xlsx téléchargeable
 """
 
-import os, sys, glob, io, subprocess, threading
+import os, sys, glob, io, re, subprocess, threading, unicodedata
 from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory, send_file
 
@@ -22,6 +22,144 @@ JOBS_LOCK = threading.Lock()
 MAX_RUNNING = 2
 
 DATA_EXTENSIONS = (".csv", ".xlsx", ".tsv")
+
+# ── référentiel des noms de colonnes (basé sur bdd_compilee, feuille Feuil1) ─
+# Ordre = ordre de sortie souhaité dans le fichier final. Toute colonne d'un
+# fichier source qui correspond (exactement ou par alias) à une de ces
+# colonnes sera renommée pour matcher exactement ce nom.
+REFERENCE_COLUMNS = [
+    "enseigne", "nom", "url", "adresse", "cp", "ville", "departement",
+    "nom_departement", "region", "pays", "telephone", "latitude", "longitude",
+    "email", "fichier_source", "google_maps", "phone_raw", "siret", "siren",
+    "url_doctolib", "zone", "zone recherchée", "fax", "siret_api",
+    "verification", "adresse_sirene", "nom_sirene", "score_adresse",
+    "tel_clean", "doublon", "dédoublonage",
+]
+
+# Alias connus -> colonne de référence. Les clés sont déjà normalisées
+# (cf. _normalize_colname) : minuscules, sans accents, sans espaces/tirets.
+COLUMN_ALIASES = {
+    # enseigne
+    "enseigne": "enseigne", "marque": "enseigne", "brand": "enseigne",
+    "chaine": "enseigne", "reseau": "enseigne",
+    # nom (du magasin/boutique)
+    "nom": "nom", "nommagasin": "nom", "nomboutique": "nom",
+    "nomenseigne": "nom", "name": "nom", "store": "nom", "magasin": "nom",
+    "boutique": "nom", "titre": "nom",
+    # url
+    "url": "url", "lien": "url", "link": "url", "siteweb": "url",
+    "site": "url", "pageurl": "url",
+    # adresse
+    "adresse": "adresse", "address": "adresse", "adressecomplete": "adresse",
+    "rue": "adresse", "voie": "adresse",
+    # code postal
+    "cp": "cp", "codepostal": "cp", "zipcode": "cp", "postalcode": "cp",
+    "zip": "cp",
+    # ville
+    "ville": "ville", "city": "ville", "commune": "ville",
+    # departement
+    "departement": "departement", "dept": "departement", "dpt": "departement",
+    "codedepartement": "departement",
+    # nom_departement
+    "nomdepartement": "nom_departement", "departementnom": "nom_departement",
+    # region
+    "region": "region",
+    # pays
+    "pays": "pays", "country": "pays",
+    # telephone
+    "telephone": "telephone", "tel": "telephone", "phone": "telephone",
+    "numerotelephone": "telephone", "telfixe": "telephone",
+    "telephonefixe": "telephone",
+    # latitude / longitude
+    "latitude": "latitude", "lat": "latitude",
+    "longitude": "longitude", "lng": "longitude", "lon": "longitude",
+    "long": "longitude",
+    # email
+    "email": "email", "mail": "email", "courriel": "email", "emailaddress": "email",
+    # fichier_source
+    "fichiersource": "fichier_source", "source": "fichier_source",
+    "sourcefile": "fichier_source",
+    # google_maps
+    "googlemaps": "google_maps", "lienmaps": "google_maps",
+    "googlemapsurl": "google_maps", "mapsurl": "google_maps",
+    # phone_raw
+    "phoneraw": "phone_raw", "telbrut": "phone_raw", "telephonebrut": "phone_raw",
+    "telraw": "phone_raw",
+    # siret
+    "siret": "siret",
+    # siren
+    "siren": "siren",
+    # url_doctolib
+    "urldoctolib": "url_doctolib", "doctolib": "url_doctolib",
+    "liendoctolib": "url_doctolib",
+    # zone
+    "zone": "zone",
+    # zone recherchée
+    "zonerecherchee": "zone recherchée", "zonerecherche": "zone recherchée",
+    # fax
+    "fax": "fax", "numerofax": "fax",
+    # siret_api
+    "siretapi": "siret_api",
+    # verification
+    "verification": "verification", "verif": "verification",
+    "verifie": "verification",
+    # adresse_sirene
+    "adressesirene": "adresse_sirene",
+    # nom_sirene
+    "nomsirene": "nom_sirene",
+    # score_adresse
+    "scoreadresse": "score_adresse",
+    # tel_clean
+    "telclean": "tel_clean", "telephoneclean": "tel_clean",
+    "telephonenettoye": "tel_clean", "telnettoye": "tel_clean",
+    # doublon
+    "doublon": "doublon", "duplicate": "doublon",
+    # dédoublonage
+    "dedoublonage": "dédoublonage",
+}
+
+
+def _normalize_colname(name):
+    """minuscule, sans accents, sans espaces/tirets/underscores superflus."""
+    name = str(name).strip().lower()
+    name = unicodedata.normalize("NFKD", name)
+    name = "".join(c for c in name if not unicodedata.combining(c))
+    name = re.sub(r"[\s\-_]+", "", name)
+    return name
+
+
+def harmonize_columns(df):
+    """
+    Renomme les colonnes de df pour matcher le référentiel REFERENCE_COLUMNS,
+    via correspondance exacte (normalisée) puis via la table d'alias.
+    Les colonnes sans correspondance gardent leur nom d'origine.
+    En cas de collision (plusieurs colonnes du fichier source pointant vers
+    le même nom cible), seule la première est renommée ; les suivantes
+    gardent leur nom d'origine pour ne pas créer de doublon ambigu.
+    """
+    ref_by_norm = {_normalize_colname(c): c for c in REFERENCE_COLUMNS}
+    rename_map = {}
+    used_targets = set()
+
+    for col in df.columns:
+        norm = _normalize_colname(col)
+
+        if norm in ref_by_norm:
+            target = ref_by_norm[norm]
+        elif norm in COLUMN_ALIASES:
+            target = COLUMN_ALIASES[norm]
+        else:
+            target = None
+
+        if target and target != col and target not in used_targets:
+            rename_map[col] = target
+            used_targets.add(target)
+        elif target:
+            used_targets.add(col if target in used_targets else target)
+
+    if rename_map:
+        df = df.rename(columns=rename_map)
+    return df
 
 
 # ── lecture CSV robuste ───────────────────────────────────────────
@@ -248,6 +386,8 @@ def api_download_all():
             ws = wb.create_sheet(sheet_name)
             ws["A1"] = f"Erreur de lecture : {e}"
             continue
+
+        df = harmonize_columns(df)
 
         ws = wb.create_sheet(sheet_name)
 

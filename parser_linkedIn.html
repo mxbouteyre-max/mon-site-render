@@ -368,7 +368,7 @@ btnParse.addEventListener('click', () => {
       const profile = parseLinkedInHTML(f.content, f.name);
       results.push(profile);
     } catch(e) {
-      results.push({ _source: f.name, _error: true, nom: f.name, poste_actuel: 'ERREUR', entreprise_actuelle: '', localisation: '', formations: '', experiences: '', email: '' });
+      results.push({ _source: f.name, _error: true, nom_complet: f.name, prenom: '', nom: '', poste_actuel: 'ERREUR', entreprise_actuelle: '', localisation: '', formations: '', experiences: '', email: '' });
     }
   });
   renderQueue();
@@ -406,6 +406,17 @@ function parseLinkedInHTML(html, filename) {
   if (titleEl) {
     const m = titleEl.textContent.match(/^([^|]+)\|/);
     if (m) nom = m[1].trim().replace(/LinkedIn/gi, '').trim();
+  }
+
+  // Sépare un nom complet en { prenom, nom } : le premier mot est considéré
+  // comme le prénom, le reste (s'il y en a) comme le nom de famille.
+  function splitNomComplet(nomComplet) {
+    if (!nomComplet) return { prenom: '', nom: '' };
+    const parts = nomComplet.trim().split(/\s+/);
+    if (parts.length === 0) return { prenom: '', nom: '' };
+    const prenom = parts[0];
+    const nom = parts.slice(1).join(' ');
+    return { prenom, nom };
   }
 
   // ── HELPERS ──
@@ -692,9 +703,12 @@ function parseLinkedInHTML(html, filename) {
 
   // Build flat return object with exp1/exp2/exp3 and form1/form2/form3 columns
   const locParsed = parseLocation(localisation);
+  const { prenom: nomPrenom, nom: nomNom } = splitNomComplet(nom);
   const row = {
     _source: filename,
-    nom: nom || '—',
+    nom_complet: nom || '—',
+    prenom: nomPrenom || '—',
+    nom: nomNom || '—',
     localisation: localisation || '—',
     ville:   locParsed.ville  || '—',
     region:  locParsed.region || '—',
@@ -832,7 +846,9 @@ function renderTable() {
 
   const rows = results.map(r => `
     <tr>
-      <td><strong>${esc(r.nom)}</strong><br>${locCell(r)}</td>
+      <td><strong>${esc(r.nom_complet)}</strong><br>${locCell(r)}</td>
+      <td>${cell(r.prenom)}</td>
+      <td>${cell(r.nom)}</td>
       <td>${cell(r.exp1_entreprise)}</td>
       <td>${cell(r.exp1_poste)}</td>
       <td>${cell(r.exp1_debut)}</td>
@@ -856,6 +872,8 @@ function renderTable() {
       <thead>
         <tr>
           <th>Nom / Localisation</th>
+          <th>Prénom</th>
+          <th>Nom</th>
           <th>Enseigne</th>
           <th>Titre du poste</th>
           <th>Début poste</th>
@@ -879,13 +897,13 @@ function renderTable() {
 
 btnCSV.addEventListener('click', () => {
   const headers = [
-    'Nom', 'Localisation', 'Ville', 'Région', 'Pays',
+    'Nom complet', 'Prénom', 'Nom', 'Localisation', 'Ville', 'Région', 'Pays',
     'Enseigne', 'Titre du poste', 'Début poste', 'Fin poste',
     'École', 'Titre de formation', 'Début formation', 'Fin formation',
     'ISO', 'Diplôme ISO', 'Année ISO', 'Email', 'Profil LinkedIn', 'Fichier source'
   ];
   const rows = results.map(r => [
-    r.nom, r.localisation, r.ville, r.region, r.pays,
+    r.nom_complet, r.prenom, r.nom, r.localisation, r.ville, r.region, r.pays,
     r.exp1_entreprise, r.exp1_poste, r.exp1_debut, r.exp1_fin,
     r.form1_ecole, r.form1_diplome, r.form1_debut, r.form1_fin,
     r.iso, r.iso_diplome, r.iso_annee, r.email, r.linkedin_url, r._source
