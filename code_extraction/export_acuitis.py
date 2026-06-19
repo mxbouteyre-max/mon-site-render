@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import re
 import json
-import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 BASE_URL = "https://fr.acuitis.com"
 
@@ -12,6 +12,25 @@ LIST_URL = "https://fr.acuitis.com/blogs/plus-dinformations/store-locator-acuiti
 headers = {
     "User-Agent": "Mozilla/5.0"
 }
+
+# Nombre de boutiques visitées en parallèle. 12 est un bon compromis entre
+# vitesse et politesse envers le serveur (au-delà, le gain marginal diminue
+# et le risque de rate-limiting / erreurs augmente).
+MAX_WORKERS = 12
+
+# Une session HTTP par thread est créée via threading.local pour réutiliser
+# les connexions TCP/TLS au sein d'un même thread, au lieu d'en ouvrir une
+# nouvelle à chaque requests.get() comme dans la version originale.
+import threading
+_thread_local = threading.local()
+
+
+def get_session():
+    if not hasattr(_thread_local, "session"):
+        _thread_local.session = requests.Session()
+        _thread_local.session.headers.update(headers)
+    return _thread_local.session
+
 
 # =========================================================
 # Récupération des liens boutiques
@@ -62,199 +81,220 @@ def extract_cp_ville(adresse):
     return cp, ville
 
 # =========================================================
-# Scraping des boutiques
+# Scraping d'une boutique (exécuté en parallèle par les threads)
 # =========================================================
 
-resultats = []
+def scrape_boutique(boutique):
 
-for boutique in boutiques:
+    session = get_session()
 
-    print("Scraping :", boutique["nom"])
+    r = session.get(boutique["url"], timeout=20)
+    soup_b = BeautifulSoup(r.text, "html.parser")
 
-    try:
+    # -------------------------------------------------
+    # Type de boutique
+    # -------------------------------------------------
 
-        r = requests.get(boutique["url"], headers=headers)
-        soup_b = BeautifulSoup(r.text, "html.parser")
+    type_boutique = ""
 
-        # -------------------------------------------------
-        # Type de boutique
-        # -------------------------------------------------
+    h1 = soup_b.select_one("h1.gw-store-hero__subtitle")
 
-        type_boutique = ""
+    if h1:
+        type_boutique = h1.get_text(strip=True)
 
-        h1 = soup_b.select_one("h1.gw-store-hero__subtitle")
+    # -------------------------------------------------
+    # Nom boutique
+    # -------------------------------------------------
 
-        if h1:
-            type_boutique = h1.get_text(strip=True)
+    nom_boutique = boutique["nom"]
 
-        # -------------------------------------------------
-        # Nom boutique
-        # -------------------------------------------------
+    h2 = soup_b.select_one("h2.gw-store-hero__title")
 
-        nom_boutique = boutique["nom"]
+    if h2:
+        nom_boutique = h2.get_text(strip=True)
 
-        h2 = soup_b.select_one("h2.gw-store-hero__title")
+    # -------------------------------------------------
+    # Adresse
+    # -------------------------------------------------
 
-        if h2:
-            nom_boutique = h2.get_text(strip=True)
+    adresse_complete = ""
 
-        # -------------------------------------------------
-        # Adresse
-        # -------------------------------------------------
+    adresse_block = soup_b.select_one(
+        "div.metafield-rich_text_field"
+    )
 
-        adresse_complete = ""
+    if adresse_block:
 
-        adresse_block = soup_b.select_one(
-            "div.metafield-rich_text_field"
+        lignes = [
+            p.get_text(" ", strip=True)
+            for p in adresse_block.find_all("p")
+        ]
+
+        adresse_complete = " | ".join(lignes)
+
+    # -------------------------------------------------
+    # CP / Ville
+    # -------------------------------------------------
+
+    code_postal, ville = extract_cp_ville(adresse_complete)
+
+    # -------------------------------------------------
+    # Département
+    # -------------------------------------------------
+
+    departement = ""
+
+    if code_postal:
+
+        if code_postal.startswith("20"):
+            departement = "2A/2B"
+        else:
+            departement = code_postal[:2]
+
+    # -------------------------------------------------
+    # Téléphone
+    # -------------------------------------------------
+
+    telephone = ""
+
+    tel = soup_b.select_one("a.gw-store-hero__phone")
+
+    if tel:
+        telephone = tel.get_text(strip=True)
+
+    # -------------------------------------------------
+    # Email
+    # -------------------------------------------------
+
+    email = ""
+
+    email_link = soup_b.find(
+        "a",
+        href=lambda x: x and x.startswith("mailto:")
+    )
+
+    if email_link:
+
+        email = email_link["href"].replace("mailto:", "").strip()
+
+    # -------------------------------------------------
+    # Google Maps + coordonnées GPS
+    # -------------------------------------------------
+
+    google_maps = ""
+    latitude = ""
+    longitude = ""
+
+    maps_link = soup_b.find(
+        "a",
+        href=lambda x: x and "google.com/maps/dir" in x
+    )
+
+    if maps_link:
+
+        google_maps = maps_link["href"]
+
+        gps_match = re.search(
+            r"destination=([-0-9\.]+)%2C([-0-9\.]+)",
+            google_maps
         )
 
-        if adresse_block:
+        if gps_match:
 
-            lignes = [
-                p.get_text(" ", strip=True)
-                for p in adresse_block.find_all("p")
-            ]
+            latitude = gps_match.group(1)
+            longitude = gps_match.group(2)
 
-            adresse_complete = " | ".join(lignes)
+    # -------------------------------------------------
+    # Horaires JSON
+    # -------------------------------------------------
 
-        # -------------------------------------------------
-        # CP / Ville
-        # -------------------------------------------------
+    horaires = {}
 
-        code_postal, ville = extract_cp_ville(adresse_complete)
+    horaires_script = soup_b.find(
+        "script",
+        id=re.compile("StoreHoursData")
+    )
 
-        # -------------------------------------------------
-        # Département
-        # -------------------------------------------------
+    if horaires_script:
 
-        departement = ""
+        try:
 
-        if code_postal:
+            data = json.loads(horaires_script.string)
 
-            if code_postal.startswith("20"):
-                departement = "2A/2B"
-            else:
-                departement = code_postal[:2]
+            horaires = data.get("standard", {})
 
-        # -------------------------------------------------
-        # Téléphone
-        # -------------------------------------------------
+        except Exception:
+            pass
 
-        telephone = ""
+    # -------------------------------------------------
+    # Mise en forme horaires
+    # -------------------------------------------------
 
-        tel = soup_b.select_one("a.gw-store-hero__phone")
+    horaires_str = ""
 
-        if tel:
-            telephone = tel.get_text(strip=True)
+    for jour, plages in horaires.items():
 
-        # -------------------------------------------------
-        # Email
-        # -------------------------------------------------
+        if plages:
+            horaires_str += f"{jour}: {' / '.join(plages)} | "
+        else:
+            horaires_str += f"{jour}: fermé | "
 
-        email = ""
+    # -------------------------------------------------
+    # Résultat
+    # -------------------------------------------------
 
-        email_link = soup_b.find(
-            "a",
-            href=lambda x: x and x.startswith("mailto:")
-        )
+    return {
 
-        if email_link:
+        "nom": nom_boutique,
+        "type": type_boutique,
+        "url": boutique["url"],
 
-            email = email_link["href"].replace("mailto:", "").strip()
+        "adresse_complete": adresse_complete,
+        "code_postal": code_postal,
+        "ville": ville,
+        "departement": departement,
 
-        # -------------------------------------------------
-        # Google Maps + coordonnées GPS
-        # -------------------------------------------------
+        "telephone": telephone,
+        "email": email,
 
-        google_maps = ""
-        latitude = ""
-        longitude = ""
+        "latitude": latitude,
+        "longitude": longitude,
 
-        maps_link = soup_b.find(
-            "a",
-            href=lambda x: x and "google.com/maps/dir" in x
-        )
+        "google_maps": google_maps,
 
-        if maps_link:
+        "horaires": horaires_str
+    }
 
-            google_maps = maps_link["href"]
 
-            gps_match = re.search(
-                r"destination=([-0-9\.]+)%2C([-0-9\.]+)",
-                google_maps
-            )
+# =========================================================
+# Scraping des boutiques (parallélisé)
+# =========================================================
+# Les résultats sont stockés dans un dict indexé par position d'origine
+# pour reconstituer l'ordre exact de la liste `boutiques` à la fin, même
+# si les threads terminent dans le désordre.
 
-            if gps_match:
+resultats_par_index = {}
 
-                latitude = gps_match.group(1)
-                longitude = gps_match.group(2)
+with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
 
-        # -------------------------------------------------
-        # Horaires JSON
-        # -------------------------------------------------
+    futures = {
+        executor.submit(scrape_boutique, boutique): (i, boutique)
+        for i, boutique in enumerate(boutiques)
+    }
 
-        horaires = {}
+    for future in as_completed(futures):
 
-        horaires_script = soup_b.find(
-            "script",
-            id=re.compile("StoreHoursData")
-        )
+        i, boutique = futures[future]
 
-        if horaires_script:
+        try:
+            resultats_par_index[i] = future.result()
+            print("Scraping OK :", boutique["nom"])
 
-            try:
+        except Exception as e:
+            print("Erreur :", boutique["nom"], e)
 
-                data = json.loads(horaires_script.string)
-
-                horaires = data.get("standard", {})
-
-            except:
-                pass
-
-        # -------------------------------------------------
-        # Mise en forme horaires
-        # -------------------------------------------------
-
-        horaires_str = ""
-
-        for jour, plages in horaires.items():
-
-            if plages:
-                horaires_str += f"{jour}: {' / '.join(plages)} | "
-            else:
-                horaires_str += f"{jour}: fermé | "
-
-        # -------------------------------------------------
-        # Résultat
-        # -------------------------------------------------
-
-        resultats.append({
-
-            "nom": nom_boutique,
-            "type": type_boutique,
-            "url": boutique["url"],
-
-            "adresse_complete": adresse_complete,
-            "code_postal": code_postal,
-            "ville": ville,
-            "departement": departement,
-
-            "telephone": telephone,
-            "email": email,
-
-            "latitude": latitude,
-            "longitude": longitude,
-
-            "google_maps": google_maps,
-
-            "horaires": horaires_str
-        })
-
-        time.sleep(0.3)
-
-    except Exception as e:
-
-        print("Erreur :", boutique["nom"], e)
+# Reconstitue l'ordre d'origine (positions manquantes = échecs, ignorées)
+resultats = [resultats_par_index[i] for i in range(len(boutiques)) if i in resultats_par_index]
 
 # =========================================================
 # DataFrame

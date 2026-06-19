@@ -1,0 +1,255 @@
+﻿nom;type;url;adresse_complete;code_postal;ville;departement;telephone;email;latitude;longitude;google_maps;horaires
+Acuitis Agen;Opticien à Agen;https://fr.acuitis.com/blogs/nos-boutiques/agen-optique;358 Avenue de l'Atlantique | Centre Commercial Intermarché - ZAC Agen Sud | 47000 Agen;47000;Agen;47;0553688729;agen@acuitis.com;44.18224;0.62015;https://www.google.com/maps/dir/?api=1&destination=44.18224%2C0.62015;monday: 09:30-19:00 | tuesday: 09:30-19:00 | wednesday: 09:30-19:00 | thursday: 09:30-19:00 | friday: 09:30-19:00 | saturday: 09:30-19:00 | sunday: fermé | 
+Acuitis Aix Les Bains;Opticien à Aix Les Bains;https://fr.acuitis.com/blogs/nos-boutiques/aix-les-bains-optique;376 Rue de Genève | 73100 Aix-les-Bains;73100;Aix-les-Bains;73;0479883002;aixlesbains@acuitis.com;45.69279;5.9119;https://www.google.com/maps/dir/?api=1&destination=45.69279%2C5.9119;monday: 09:30-19:00 | tuesday: 09:30-19:00 | wednesday: 09:30-19:00 | thursday: 09:30-19:00 | friday: 09:30-19:00 | saturday: 09:30-19:00 | sunday: fermé | 
+Acuitis Ajaccio;Opticien à Ajaccio;https://fr.acuitis.com/blogs/nos-boutiques/ajaccio-optique;Les Hameaux de Pernicaggio | Centre Commercial Atrium | 20167 Sarrola-Carcopino;20167;Sarrola-Carcopino;2A/2B;0495501010;ajaccio@acuitis.com;41.95334;8.79363;https://www.google.com/maps/dir/?api=1&destination=41.95334%2C8.79363;monday: 09:30-19:30 | tuesday: 09:30-19:30 | wednesday: 09:30-19:30 | thursday: 09:30-19:30 | friday: 09:30-19:30 | saturday: 09:30-19:30 | sunday: fermé | 
+Acuitis Ales;Opticien à Ales;https://fr.acuitis.com/blogs/nos-boutiques/ales-optique;43 Avenue Carnot | 30100 Alès;30100;Alès;30;0466438209;ales@acuitis.com;44.12144;4.08612;https://www.google.com/maps/dir/?api=1&destination=44.12144%2C4.08612;monday: 09:30-19:00 | tuesday: 09:30-19:00 | wednesday: 09:30-19:00 | thursday: 09:30-19:00 | friday: 09:30-19:00 | saturday: 10:00-18:00 | sunday: fermé | 
+Acuitis Anet;Opticien à Anet;https://fr.acuitis.com/blogs/nos-boutiques/anet-optique;24 Route d'Oulins | 28260 Anet;28260;Anet;28;0236690563;anet@acuitis.com;48.86526;1.4625;https://www.google.com/maps/dir/?api=1&destination=48.86526%2C1.4625;monday: 09:30-13:00 / 14:00-19:00 | tuesday: 09:30-13:00 / 14:00-19:00 | wednesday: 09:30-13:00 / 14:00-19:00 | thursday: 09:30-13:00 / 14:00-19:00 | friday: 09:30-13:00 / 14:00-19:00 | saturday: 09:30-18:00 | sunday: fermé | 
+Acuitis Angers;Opticien à Angers;https://fr.acuitis.com/blogs/nos-boutiques/angers-optique;1 Place du Pilori | 49100 Angers;49100;Angers;49;0272470598;angers@acuitis.com;47.47341;-0.54967;https://www.google.com/maps/dir/?api=1&destination=47.47341%2C-0.54967;monday: 12:00-19:00 | tuesday: 10:00-19:00 | wednesday: 10:00-19:00 | thursday: 10:00-19:00 | friday: 10:00-19:00 | saturday: 10:00-19:00 | sunday: fermé | 
+Acuitis Antibes;Opticien à Antibes;https://fr.acuitis.com/blogs/nos-boutiques/antibes-optique;50 Voie Marie Fischer | Centre Commercial Olympie | 06600 Antibes;06600;Antibes;06;0497281589;antibes@acuitis.com;43.59972;7.08516;https://www.google.com/maps/dir/?api=1&destination=43.59972%2C7.08516;monday: 09:30-19:30 | tuesday: 09:30-19:30 | wednesday: 09:30-19:30 | thursday: 09:30-19:30 | friday: 09:30-19:30 | saturday: 09:30-19:30 | sunday: fermé | 
+Acuitis Ares;Opticien à Ares;https://fr.acuitis.com/blogs/nos-boutiques/ares-optique;Route de Bordeaux | Centre Commercial Leclerc les Portes du Bassin | 33740 Arès;33740;Arès;33;0557170376;ares@acuitis.com;44.7713288;-1.1134064;https://www.google.com/maps/dir/?api=1&destination=44.7713288%2C-1.1134064;monday: 09:30-19:30 | tuesday: 09:30-19:30 | wednesday: 09:30-19:30 | thursday: 09:30-19:30 | friday: 09:30-19:30 | saturday: 09:30-19:30 | sunday: fermé | 
+Acuitis Arras;Opticien à Arras;https://fr.acuitis.com/blogs/nos-boutiques/arras-optique;3 Rue Wacquez Glasson | 62000 Arras;62000;Arras;62;0321247843;arras@acuitis.com;50.28971;2.77936;https://www.google.com/maps/dir/?api=1&destination=50.28971%2C2.77936;monday: 14:00-19:00 | tuesday: 09:30-19:00 | wednesday: 09:30-19:00 | thursday: 09:30-19:00 | friday: 09:30-19:00 | saturday: 09:30-19:00 | sunday: 14:00-18:00 | 
+Acuitis Auxerre;Opticien à Auxerre;https://fr.acuitis.com/blogs/nos-boutiques/auxerre-optique;14 Avenue Jean Jaurès | Galerie marchande Leclerc | 89000 Auxerre;89000;Auxerre;89;0386941190;auxerre@acuitis.com;47.79748;3.57962;https://www.google.com/maps/dir/?api=1&destination=47.79748%2C3.57962;monday: 14:00-19:00 | tuesday: 09:30-19:00 | wednesday: 09:30-19:00 | thursday: 09:30-19:00 | friday: 09:30-19:00 | saturday: 09:30-18:00 | sunday: fermé | 
+Acuitis Bastia;Opticien à Bastia;https://fr.acuitis.com/blogs/nos-boutiques/bastia-optique;21 rue Cesar Campinchi | acuitis | 20200 Bastia;20200;Bastia;2A/2B;0428018607;bastia@acuitis.com;42.70042;9.44937;https://www.google.com/maps/dir/?api=1&destination=42.70042%2C9.44937;monday: 09:30-19:00 | tuesday: 09:30-19:00 | wednesday: 09:30-19:00 | thursday: 09:30-19:00 | friday: 09:30-19:00 | saturday: 09:30-19:00 | sunday: fermé | 
+Acuitis Bayeux;Opticien à Bayeux;https://fr.acuitis.com/blogs/nos-boutiques/bayeux-optique;50 - 52 rue de Saint Malo | 14400 Bayeux;14400;Bayeux;14;0231511590;bayeux@acuitis.com;49.27819;-0.70578;https://www.google.com/maps/dir/?api=1&destination=49.27819%2C-0.70578;monday: 14:00-19:00 | tuesday: 09:30-19:00 | wednesday: 09:30-19:00 | thursday: 09:30-19:00 | friday: 09:30-19:00 | saturday: 09:30-19:00 | sunday: fermé | 
+Acuitis Bayonne;Opticien à Bayonne;https://fr.acuitis.com/blogs/nos-boutiques/bayonne-optique;2 4 avenue du portou | Centre Commercial Ikea Ametzondo | 64990 Saint-Pierre-d'Irube;64990;Saint-Pierre-d'Irube;64;0564115363;bayonne@acuitis.com;43.48118;-1.44512;https://www.google.com/maps/dir/?api=1&destination=43.48118%2C-1.44512;monday: 09:30-19:30 | tuesday: 09:30-19:30 | wednesday: 09:30-19:30 | thursday: 09:30-19:30 | friday: 09:30-19:30 | saturday: 09:30-19:30 | sunday: fermé | 
+Acuitis Bergerac;Opticien à Bergerac;https://fr.acuitis.com/blogs/nos-boutiques/bergerac-optique;13 Rue de la résistance | 24100 Bergerac;24100;Bergerac;24;0564722397;bergerac@acuitis.com;44.85314;0.48423;https://www.google.com/maps/dir/?api=1&destination=44.85314%2C0.48423;monday: 14:00-19:00 | tuesday: 09:30-19:00 | wednesday: 09:30-19:00 | thursday: 09:30-19:00 | friday: 09:30-19:00 | saturday: 09:00-18:30 | sunday: fermé | 
+Acuitis Bethune;Opticien à Bethune;https://fr.acuitis.com/blogs/nos-boutiques/bethune-optique;50 Rue Albert 1er | 62400 Béthune;62400;Béthune;62;0321658601;bethune@acuitis.com;50.53148;2.64043;https://www.google.com/maps/dir/?api=1&destination=50.53148%2C2.64043;monday: 10:00-19:00 | tuesday: 10:00-19:00 | wednesday: 10:00-19:00 | thursday: 10:00-19:00 | friday: 10:00-19:00 | saturday: 10:00-19:00 | sunday: fermé | 
+Acuitis Biganos;Opticien à Biganos;https://fr.acuitis.com/blogs/nos-boutiques/biganos-optique;31 Rue des Fonderies | 33380 Biganos;33380;Biganos;33;0557170118;biganos@acuitis.com;44.63803;-0.96074;https://www.google.com/maps/dir/?api=1&destination=44.63803%2C-0.96074;monday: 10:00-19:00 | tuesday: 10:00-19:00 | wednesday: 10:00-19:00 | thursday: 10:00-19:00 | friday: 10:00-19:00 | saturday: 10:00-19:00 | sunday: fermé | 
+Acuitis Bois Senart;Opticien à Bois Senart;https://fr.acuitis.com/blogs/nos-boutiques/bois-senart-optique;Route Départementale 306 | Centre Commercial Bois Sénart | 77240 Cesson;77240;Cesson;77;0160650064;boissenart@acuitis.com;48.5881;2.59984;https://www.google.com/maps/dir/?api=1&destination=48.5881%2C2.59984;monday: 09:30-20:00 | tuesday: 09:30-20:00 | wednesday: 09:30-20:00 | thursday: 09:30-20:00 | friday: 09:30-20:00 | saturday: 09:30-20:00 | sunday: fermé | 
+Acuitis Bordeaux Begles;Opticien à Bordeaux Begles;https://fr.acuitis.com/blogs/nos-boutiques/bordeaux-begles-optique;Rue des Frères Lumière | Centre Commercial Les Rives d'Arcins, Porte Nénuphar | 33130 Bègles;33130;Bègles;33;0556843888;bordeauxbegles@acuitis.com;44.79506;-0.5331;https://www.google.com/maps/dir/?api=1&destination=44.79506%2C-0.5331;monday: 09:30-20:00 | tuesday: 09:30-20:00 | wednesday: 09:30-20:00 | thursday: 09:30-20:00 | friday: 09:30-20:00 | saturday: 09:30-20:00 | sunday: fermé | 
+Acuitis Bordeaux Centre;Opticien à Bordeaux Centre;https://fr.acuitis.com/blogs/nos-boutiques/bordeaux-centre-optique;43 Rue des Trois-Conils | 33000 Bordeaux;33000;Bordeaux;33;0556811996;bordeauxcentre@acuitis.com;44.83886;-0.57627;https://www.google.com/maps/dir/?api=1&destination=44.83886%2C-0.57627;monday: 09:30-19:00 | tuesday: 09:30-19:00 | wednesday: 09:30-19:00 | thursday: 09:30-19:00 | friday: 09:30-19:00 | saturday: 09:30-19:00 | sunday: fermé | 
+Acuitis Bordeaux Lac;Opticien à Bordeaux Lac;https://fr.acuitis.com/blogs/nos-boutiques/bordeaux-lac-optique;Avenue des 40 Journaux | Centre Commercial Bordeaux Lac | 33300 Bordeaux;33300;Bordeaux;33;0535545051;bordeauxlac@acuitis.com;44.88077;-0.56491;https://www.google.com/maps/dir/?api=1&destination=44.88077%2C-0.56491;monday: 09:30-20:00 | tuesday: 09:30-20:00 | wednesday: 09:30-20:00 | thursday: 09:30-20:00 | friday: 09:30-20:00 | saturday: 09:30-20:00 | sunday: fermé | 
+Acuitis Bordeaux Lormont;Opticien à Bordeaux Lormont;https://fr.acuitis.com/blogs/nos-boutiques/bordeaux-lormont-optique;Centre Commercial des 4 Pavillons | Rive Droite - Entrée Porte 4 | 33310 Lormont;33310;Lormont;33;0535549151;bordeauxlormont@acuitis.com;44.86725;-0.51694;https://www.google.com/maps/dir/?api=1&destination=44.86725%2C-0.51694;monday: 09:30-19:30 | tuesday: 09:30-19:30 | wednesday: 09:30-19:30 | thursday: 09:30-19:30 | friday: 09:30-19:30 | saturday: 09:30-19:30 | sunday: fermé | 
+Acuitis Bordeaux Merignac;Opticien à Bordeaux Merignac;https://fr.acuitis.com/blogs/nos-boutiques/bordeaux-merignac-optique;16 Avenue de l'Yser | 33700 Mérignac;33700;Mérignac;33;0535540099;bordeauxmerignac@acuitis.com;44.84153;-0.64873;https://www.google.com/maps/dir/?api=1&destination=44.84153%2C-0.64873;monday: 09:00-19:00 | tuesday: 09:00-19:00 | wednesday: 09:00-19:00 | thursday: 09:00-19:00 | friday: 09:00-19:00 | saturday: 09:00-19:00 | sunday: fermé | 
+Acuitis Bourges;Opticien à Bourges;https://fr.acuitis.com/blogs/nos-boutiques/bourges-optique;Avenue de Peterborough | Centre Commercial Avaricum | 18000 Bourges;18000;Bourges;18;0248659895;bourges@acuitis.com;47.08778;2.39592;https://www.google.com/maps/dir/?api=1&destination=47.08778%2C2.39592;monday: 09:30-19:30 | tuesday: 09:30-19:30 | wednesday: 09:30-19:30 | thursday: 09:30-19:30 | friday: 09:30-19:30 | saturday: 09:30-19:30 | sunday: fermé | 
+Acuitis Brest;Opticien à Brest;https://fr.acuitis.com/blogs/nos-boutiques/brest-optique;39 rue de Siam | 29200 Brest;29200;Brest;29;0298006776;brest@acuitis.com;48.38636;-4.49112;https://www.google.com/maps/dir/?api=1&destination=48.38636%2C-4.49112;monday: 09:30-19:00 | tuesday: 09:30-19:00 | wednesday: 09:30-19:00 | thursday: 09:30-19:00 | friday: 09:30-19:00 | saturday: 09:30-19:00 | sunday: fermé | 
+Acuitis Caen;Opticien à Caen;https://fr.acuitis.com/blogs/nos-boutiques/caen-optique;22-24 Rue Saint-Pierre | 14000 Caen;14000;Caen;14;0231578846;caen@acuitis.com;49.18383;-0.36257;https://www.google.com/maps/dir/?api=1&destination=49.18383%2C-0.36257;monday: 14:00-19:00 | tuesday: 10:00-19:00 | wednesday: 10:00-19:00 | thursday: 10:00-19:00 | friday: 10:00-19:00 | saturday: 10:00-19:00 | sunday: fermé | 
+Acuitis Challans;Opticien à Challans;https://fr.acuitis.com/blogs/nos-boutiques/challans-optique;2 Square d'Elbée | 85300 Challans;85300;Challans;85;0228104727;challans@acuitis.com;46.83795;-1.87445;https://www.google.com/maps/dir/?api=1&destination=46.83795%2C-1.87445;monday: fermé | tuesday: 09:30-12:30 / 14:00-19:00 | wednesday: 09:30-12:30 / 14:00-19:00 | thursday: 09:30-12:30 / 14:00-19:00 | friday: 09:30-12:30 / 14:00-19:00 | saturday: 09:30-12:30 / 14:00-19:00 | sunday: fermé | 
+Chambray Les Tours;;https://fr.acuitis.com/blogs/nos-boutiques/chambray-les-tours-optique;;;;;;;;;;
+Champfleury;;https://fr.acuitis.com/blogs/nos-boutiques/champfleury-optique;;;;;;;;;;
+Cholet;;https://fr.acuitis.com/blogs/nos-boutiques/cholet-optique;;;;;;;;;;
+Clermont Ferrand;;https://fr.acuitis.com/blogs/nos-boutiques/clermont-ferrand-optique;;;;;;;;;;
+Clermont Lherault;;https://fr.acuitis.com/blogs/nos-boutiques/clermont-lherault-optique;;;;;;;;;;
+Dax;;https://fr.acuitis.com/blogs/nos-boutiques/dax-optique;;;;;;;;;;
+Dieppe;;https://fr.acuitis.com/blogs/nos-boutiques/dieppe-optique;;;;;;;;;;
+Dijon;;https://fr.acuitis.com/blogs/nos-boutiques/dijon-optique;;;;;;;;;;
+Dunkerque;;https://fr.acuitis.com/blogs/nos-boutiques/dunkerque-optique;;;;;;;;;;
+Fontenay Le Comte;;https://fr.acuitis.com/blogs/nos-boutiques/fontenay-le-comte-optique;;;;;;;;;;
+Fort De France Perrinon;;https://fr.acuitis.com/blogs/nos-boutiques/fort-de-france-perrinon-optique;;;;;;;;;;
+Grand Evreux;;https://fr.acuitis.com/blogs/nos-boutiques/grand-evreux-optique;;;;;;;;;;
+Haguenau;;https://fr.acuitis.com/blogs/nos-boutiques/haguenau-optique;;;;;;;;;;
+Honfleur;;https://fr.acuitis.com/blogs/nos-boutiques/honfleur-optique;;;;;;;;;;
+Isle D Abeau;;https://fr.acuitis.com/blogs/nos-boutiques/isle-d-abeau-optique;;;;;;;;;;
+Jarry;;https://fr.acuitis.com/blogs/nos-boutiques/jarry-optique;;;;;;;;;;
+La Roche Sur Yon;;https://fr.acuitis.com/blogs/nos-boutiques/la-roche-sur-yon-optique;;;;;;;;;;
+La Rochelle;;https://fr.acuitis.com/blogs/nos-boutiques/la-rochelle-optique;;;;;;;;;;
+La Teste De Buch;;https://fr.acuitis.com/blogs/nos-boutiques/la-teste-de-buch-optique;;;;;;;;;;
+Langon;;https://fr.acuitis.com/blogs/nos-boutiques/langon-optique;;;;;;;;;;
+Le Chesnay Rocquencourt;;https://fr.acuitis.com/blogs/nos-boutiques/le-chesnay-rocquencourt-optique;;;;;;;;;;
+Le Havre;;https://fr.acuitis.com/blogs/nos-boutiques/le-havre-optique;;;;;;;;;;
+Les Sables Dolonne;;https://fr.acuitis.com/blogs/nos-boutiques/les-sables-dolonne-optique;;;;;;;;;;
+Levallois;;https://fr.acuitis.com/blogs/nos-boutiques/levallois-optique;;;;;;;;;;
+Libourne;;https://fr.acuitis.com/blogs/nos-boutiques/libourne-optique;;;;;;;;;;
+Lille;;https://fr.acuitis.com/blogs/nos-boutiques/lille-optique;;;;;;;;;;
+Limoges;;https://fr.acuitis.com/blogs/nos-boutiques/limoges-optique;;;;;;;;;;
+Lorient;;https://fr.acuitis.com/blogs/nos-boutiques/lorient-optique;;;;;;;;;;
+Lyon Bellecour;;https://fr.acuitis.com/blogs/nos-boutiques/lyon-bellecour-optique;;;;;;;;;;
+Lyon Roosevelt;;https://fr.acuitis.com/blogs/nos-boutiques/lyon-roosevelt-optique;;;;;;;;;;
+Marmande;;https://fr.acuitis.com/blogs/nos-boutiques/marmande-optique;;;;;;;;;;
+Marseille Bonneveine;;https://fr.acuitis.com/blogs/nos-boutiques/marseille-bonneveine-optique;;;;;;;;;;
+Marseille Terrasses Du Port;;https://fr.acuitis.com/blogs/nos-boutiques/marseille-terrasses-du-port-optique;;;;;;;;;;
+Massy;;https://fr.acuitis.com/blogs/nos-boutiques/massy-optique;;;;;;;;;;
+Menton;;https://fr.acuitis.com/blogs/nos-boutiques/menton-optique;;;;;;;;;;
+Metz Muse;;https://fr.acuitis.com/blogs/nos-boutiques/metz-muse-optique;;;;;;;;;;
+Mont De Marsan;;https://fr.acuitis.com/blogs/nos-boutiques/mont-de-marsan-optique;;;;;;;;;;
+Montauban;;https://fr.acuitis.com/blogs/nos-boutiques/montauban-optique;;;;;;;;;;
+Montbeliard;;https://fr.acuitis.com/blogs/nos-boutiques/montbeliard-optique;;;;;;;;;;
+Montpellier;;https://fr.acuitis.com/blogs/nos-boutiques/montpellier-optique;;;;;;;;;;
+Mulhouse;;https://fr.acuitis.com/blogs/nos-boutiques/mulhouse-optique;;;;;;;;;;
+Nancy;;https://fr.acuitis.com/blogs/nos-boutiques/nancy-optique;;;;;;;;;;
+Nantes;;https://fr.acuitis.com/blogs/nos-boutiques/nantes-optique;;;;;;;;;;
+Neuilly;;https://fr.acuitis.com/blogs/nos-boutiques/neuilly-optique;;;;;;;;;;
+Nice Cap 3000;;https://fr.acuitis.com/blogs/nos-boutiques/nice-cap-3000-optique;;;;;;;;;;
+Nice Etoile;;https://fr.acuitis.com/blogs/nos-boutiques/nice-etoile-optique;;;;;;;;;;
+Nice Malaussena;;https://fr.acuitis.com/blogs/nos-boutiques/nice-malaussena-optique;;;;;;;;;;
+Nimes;;https://fr.acuitis.com/blogs/nos-boutiques/nimes-optique;;;;;;;;;;
+Niort;;https://fr.acuitis.com/blogs/nos-boutiques/niort-optique;;;;;;;;;;
+Niort Mendès France;;https://fr.acuitis.com/blogs/nos-boutiques/niort-mendes-france-optique;;;;;;;;;;
+Nogent Sur Marne;;https://fr.acuitis.com/blogs/nos-boutiques/nogent-sur-marne-optique;;;;;;;;;;
+Obernai;;https://fr.acuitis.com/blogs/nos-boutiques/obernai-optique;;;;;;;;;;
+Orleans Saran;;https://fr.acuitis.com/blogs/nos-boutiques/orleans-saran-optique;;;;;;;;;;
+Paris General Leclerc;;https://fr.acuitis.com/blogs/nos-boutiques/paris-general-leclerc-optique;;;;;;;;;;
+Paris Italie Deux;;https://fr.acuitis.com/blogs/nos-boutiques/paris-italie-deux-optique;;;;;;;;;;
+Paris Rue De Rennes;;https://fr.acuitis.com/blogs/nos-boutiques/paris-rue-de-rennes-optique;;;;;;;;;;
+Paris Saint Lazare;;https://fr.acuitis.com/blogs/nos-boutiques/paris-saint-lazare-optique;;;;;;;;;;
+Paris Sevres;;https://fr.acuitis.com/blogs/nos-boutiques/paris-sevres-optique;;;;;;;;;;
+Paris Voltaire;;https://fr.acuitis.com/blogs/nos-boutiques/paris-voltaire-optique;;;;;;;;;;
+Pau;;https://fr.acuitis.com/blogs/nos-boutiques/pau-optique;;;;;;;;;;
+Perpignan;;https://fr.acuitis.com/blogs/nos-boutiques/perpignan-optique;;;;;;;;;;
+Perpignan Polygone;;https://fr.acuitis.com/blogs/nos-boutiques/perpignan-polygone-optique;;;;;;;;;;
+Pertuis;;https://fr.acuitis.com/blogs/nos-boutiques/pertuis-optique;;;;;;;;;;
+Poitiers;;https://fr.acuitis.com/blogs/nos-boutiques/poitiers-optique;;;;;;;;;;
+Pontarlier;;https://fr.acuitis.com/blogs/nos-boutiques/pontarlier-optique;;;;;;;;;;
+Quimper;;https://fr.acuitis.com/blogs/nos-boutiques/quimper-optique;;;;;;;;;;
+Rambouillet;;https://fr.acuitis.com/blogs/nos-boutiques/rambouillet-optique;;;;;;;;;;
+Reims;;https://fr.acuitis.com/blogs/nos-boutiques/reims-optique;;;;;;;;;;
+Rennes;;https://fr.acuitis.com/blogs/nos-boutiques/rennes-optique;;;;;;;;;;
+Rezé;;https://fr.acuitis.com/blogs/nos-boutiques/reze-optique;;;;;;;;;;
+Roanne;;https://fr.acuitis.com/blogs/nos-boutiques/roanne-optique;;;;;;;;;;
+Rouen;;https://fr.acuitis.com/blogs/nos-boutiques/rouen-optique;;;;;;;;;;
+Saint Etienne;;https://fr.acuitis.com/blogs/nos-boutiques/saint-etienne-optique;;;;;;;;;;
+Saint Germain En Laye;;https://fr.acuitis.com/blogs/nos-boutiques/saint-germain-en-laye-optique;;;;;;;;;;
+Saint Jean De Vedas;;https://fr.acuitis.com/blogs/nos-boutiques/saint-jean-de-vedas-optique;;;;;;;;;;
+Saint-Magne-de-Castillon;;https://fr.acuitis.com/blogs/nos-boutiques/saint-magne-de-castillon-optique;;;;;;;;;;
+Saint Malo;;https://fr.acuitis.com/blogs/nos-boutiques/saint-malo-optique;;;;;;;;;;
+Saint Maximin;;https://fr.acuitis.com/blogs/nos-boutiques/saint-maximin-optique;;;;;;;;;;
+Saint Maximin La Sainte Baume;;https://fr.acuitis.com/blogs/nos-boutiques/saint-maximin-la-sainte-baume-optique;;;;;;;;;;
+Saint Paul Les Dax;;https://fr.acuitis.com/blogs/nos-boutiques/saint-paul-les-dax-optique;;;;;;;;;;
+Sainte Marie La Reunion;;https://fr.acuitis.com/blogs/nos-boutiques/sainte-marie-la-reunion-optique;;;;;;;;;;
+Sainte Maxime;;https://fr.acuitis.com/blogs/nos-boutiques/sainte-maxime-optique;;;;;;;;;;
+Selestat;;https://fr.acuitis.com/blogs/nos-boutiques/selestat-optique;;;;;;;;;;
+Sens;;https://fr.acuitis.com/blogs/nos-boutiques/sens-optique;;;;;;;;;;
+Strasbourg Arcades;;https://fr.acuitis.com/blogs/nos-boutiques/strasbourg-arcades-optique;;;;;;;;;;
+Strasbourg Les Halles;;https://fr.acuitis.com/blogs/nos-boutiques/strasbourg-les-halles-optique;;;;;;;;;;
+Ternes;;https://fr.acuitis.com/blogs/nos-boutiques/ternes-optique;;;;;;;;;;
+Toulon;;https://fr.acuitis.com/blogs/nos-boutiques/toulon-optique;;;;;;;;;;
+Toulouse;;https://fr.acuitis.com/blogs/nos-boutiques/toulouse-optique;;;;;;;;;;
+Toulouse Capitole;;https://fr.acuitis.com/blogs/nos-boutiques/toulouse-capitole-optique;;;;;;;;;;
+Tours;;https://fr.acuitis.com/blogs/nos-boutiques/tours-optique;;;;;;;;;;
+Val Deurope;;https://fr.acuitis.com/blogs/nos-boutiques/val-deurope-optique;;;;;;;;;;
+Valence;;https://fr.acuitis.com/blogs/nos-boutiques/valence-optique;;;;;;;;;;
+Valenciennes;;https://fr.acuitis.com/blogs/nos-boutiques/valenciennes-optique;;;;;;;;;;
+Vannes;;https://fr.acuitis.com/blogs/nos-boutiques/vannes-optique;;;;;;;;;;
+Varennes Sur Seine;;https://fr.acuitis.com/blogs/nos-boutiques/varennes-sur-seine-optique;;;;;;;;;;
+Vendome;;https://fr.acuitis.com/blogs/nos-boutiques/vendome-optique;;;;;;;;;;
+Verdun;;https://fr.acuitis.com/blogs/nos-boutiques/verdun-optique;;;;;;;;;;
+Vernon;;https://fr.acuitis.com/blogs/nos-boutiques/vernon-optique;;;;;;;;;;
+Versailles;;https://fr.acuitis.com/blogs/nos-boutiques/versailles-optique;;;;;;;;;;
+Vichy;;https://fr.acuitis.com/blogs/nos-boutiques/vichy-optique;;;;;;;;;;
+Vitre;;https://fr.acuitis.com/blogs/nos-boutiques/vitre-optique;;;;;;;;;;
+Agen;;https://fr.acuitis.com/blogs/nos-boutiques/agen-audition;;;;;;;;;;
+Aix Les Bains;;https://fr.acuitis.com/blogs/nos-boutiques/aix-les-bains-audition;;;;;;;;;;
+Ajaccio;;https://fr.acuitis.com/blogs/nos-boutiques/ajaccio-audition;;;;;;;;;;
+Ales;;https://fr.acuitis.com/blogs/nos-boutiques/ales-audition;;;;;;;;;;
+Anet;;https://fr.acuitis.com/blogs/nos-boutiques/anet-audition;;;;;;;;;;
+Angers;;https://fr.acuitis.com/blogs/nos-boutiques/angers-audition;;;;;;;;;;
+Antibes;;https://fr.acuitis.com/blogs/nos-boutiques/antibes-audition;;;;;;;;;;
+Ares;;https://fr.acuitis.com/blogs/nos-boutiques/ares-audition;;;;;;;;;;
+Arras;;https://fr.acuitis.com/blogs/nos-boutiques/arras-audition;;;;;;;;;;
+Auxerre;;https://fr.acuitis.com/blogs/nos-boutiques/auxerre-audition;;;;;;;;;;
+Bastia;;https://fr.acuitis.com/blogs/nos-boutiques/bastia-audition;;;;;;;;;;
+Bayeux;;https://fr.acuitis.com/blogs/nos-boutiques/bayeux-audition;;;;;;;;;;
+Bayonne;;https://fr.acuitis.com/blogs/nos-boutiques/bayonne-audition;;;;;;;;;;
+Bergerac;;https://fr.acuitis.com/blogs/nos-boutiques/bergerac-audition;;;;;;;;;;
+Bethune;;https://fr.acuitis.com/blogs/nos-boutiques/bethune-audition;;;;;;;;;;
+Biganos;;https://fr.acuitis.com/blogs/nos-boutiques/biganos-audition;;;;;;;;;;
+Bois Senart;;https://fr.acuitis.com/blogs/nos-boutiques/bois-senart-audition;;;;;;;;;;
+Bordeaux Begles;;https://fr.acuitis.com/blogs/nos-boutiques/bordeaux-begles-audition;;;;;;;;;;
+Bordeaux Centre;;https://fr.acuitis.com/blogs/nos-boutiques/bordeaux-centre-audition;;;;;;;;;;
+Bordeaux Lac;;https://fr.acuitis.com/blogs/nos-boutiques/bordeaux-lac-audition;;;;;;;;;;
+Bordeaux Lormont;;https://fr.acuitis.com/blogs/nos-boutiques/bordeaux-lormont-audition;;;;;;;;;;
+Bordeaux Merignac;;https://fr.acuitis.com/blogs/nos-boutiques/bordeaux-merignac-audition;;;;;;;;;;
+Bourges;;https://fr.acuitis.com/blogs/nos-boutiques/bourges-audition;;;;;;;;;;
+Brest;;https://fr.acuitis.com/blogs/nos-boutiques/brest-audition;;;;;;;;;;
+Caen;;https://fr.acuitis.com/blogs/nos-boutiques/caen-audition;;;;;;;;;;
+Challans;;https://fr.acuitis.com/blogs/nos-boutiques/challans-audition;;;;;;;;;;
+Chambray Les Tours;;https://fr.acuitis.com/blogs/nos-boutiques/chambray-les-tours-audition;;;;;;;;;;
+Champfleury;;https://fr.acuitis.com/blogs/nos-boutiques/champfleury-audition;;;;;;;;;;
+Cholet;;https://fr.acuitis.com/blogs/nos-boutiques/cholet-audition;;;;;;;;;;
+Clermont Ferrand;;https://fr.acuitis.com/blogs/nos-boutiques/clermont-ferrand-audition;;;;;;;;;;
+Clermont Lherault;;https://fr.acuitis.com/blogs/nos-boutiques/clermont-lherault-audition;;;;;;;;;;
+Dax;;https://fr.acuitis.com/blogs/nos-boutiques/dax-audition;;;;;;;;;;
+Dieppe;;https://fr.acuitis.com/blogs/nos-boutiques/dieppe-audition;;;;;;;;;;
+Dijon;;https://fr.acuitis.com/blogs/nos-boutiques/dijon-audition;;;;;;;;;;
+Dunkerque;;https://fr.acuitis.com/blogs/nos-boutiques/dunkerque-audition;;;;;;;;;;
+Fontenay Le Comte;;https://fr.acuitis.com/blogs/nos-boutiques/fontenay-le-comte-audition;;;;;;;;;;
+Fort De France Perrinon;;https://fr.acuitis.com/blogs/nos-boutiques/fort-de-france-perrinon-audition;;;;;;;;;;
+Grand Evreux;;https://fr.acuitis.com/blogs/nos-boutiques/grand-evreux-audition;;;;;;;;;;
+Haguenau;;https://fr.acuitis.com/blogs/nos-boutiques/haguenau-audition;;;;;;;;;;
+Honfleur;;https://fr.acuitis.com/blogs/nos-boutiques/honfleur-audition;;;;;;;;;;
+Isle D Abeau;;https://fr.acuitis.com/blogs/nos-boutiques/isle-d-abeau-audition;;;;;;;;;;
+Jarry;;https://fr.acuitis.com/blogs/nos-boutiques/jarry-audition;;;;;;;;;;
+La Roche Sur Yon;;https://fr.acuitis.com/blogs/nos-boutiques/la-roche-sur-yon-audition;;;;;;;;;;
+La Rochelle;;https://fr.acuitis.com/blogs/nos-boutiques/la-rochelle-audition;;;;;;;;;;
+La Teste De Buch;;https://fr.acuitis.com/blogs/nos-boutiques/la-teste-de-buch-audition;;;;;;;;;;
+Langon;;https://fr.acuitis.com/blogs/nos-boutiques/langon-audition;;;;;;;;;;
+Le Chesnay Rocquencourt;;https://fr.acuitis.com/blogs/nos-boutiques/le-chesnay-rocquencourt-audition;;;;;;;;;;
+Le Havre;;https://fr.acuitis.com/blogs/nos-boutiques/le-havre-audition;;;;;;;;;;
+Les Sables Dolonne;;https://fr.acuitis.com/blogs/nos-boutiques/les-sables-dolonne-audition;;;;;;;;;;
+Levallois;;https://fr.acuitis.com/blogs/nos-boutiques/levallois-audition;;;;;;;;;;
+Libourne;;https://fr.acuitis.com/blogs/nos-boutiques/libourne-audition;;;;;;;;;;
+Lille;;https://fr.acuitis.com/blogs/nos-boutiques/lille-audition;;;;;;;;;;
+Limoges;;https://fr.acuitis.com/blogs/nos-boutiques/limoges-audition;;;;;;;;;;
+Lorient;;https://fr.acuitis.com/blogs/nos-boutiques/lorient-audition;;;;;;;;;;
+Lyon Bellecour;;https://fr.acuitis.com/blogs/nos-boutiques/lyon-bellecour-audition;;;;;;;;;;
+Lyon Roosevelt;;https://fr.acuitis.com/blogs/nos-boutiques/lyon-roosevelt-audition;;;;;;;;;;
+Marmande;;https://fr.acuitis.com/blogs/nos-boutiques/marmande-audition;;;;;;;;;;
+Marseille Bonneveine;;https://fr.acuitis.com/blogs/nos-boutiques/marseille-bonneveine-audition;;;;;;;;;;
+Marseille Terrasses Du Port;;https://fr.acuitis.com/blogs/nos-boutiques/marseille-terrasses-du-port-audition;;;;;;;;;;
+Massy;;https://fr.acuitis.com/blogs/nos-boutiques/massy-audition;;;;;;;;;;
+Menton;;https://fr.acuitis.com/blogs/nos-boutiques/menton-audition;;;;;;;;;;
+Metz Muse;;https://fr.acuitis.com/blogs/nos-boutiques/metz-muse-audition;;;;;;;;;;
+Mont De Marsan;;https://fr.acuitis.com/blogs/nos-boutiques/mont-de-marsan-audition;;;;;;;;;;
+Montauban;;https://fr.acuitis.com/blogs/nos-boutiques/montauban-audition;;;;;;;;;;
+Montbeliard;;https://fr.acuitis.com/blogs/nos-boutiques/montbeliard-audition;;;;;;;;;;
+Montpellier;;https://fr.acuitis.com/blogs/nos-boutiques/montpellier-audition;;;;;;;;;;
+Mulhouse;;https://fr.acuitis.com/blogs/nos-boutiques/mulhouse-audition;;;;;;;;;;
+Nancy;;https://fr.acuitis.com/blogs/nos-boutiques/nancy-audition;;;;;;;;;;
+Nantes;;https://fr.acuitis.com/blogs/nos-boutiques/nantes-audition;;;;;;;;;;
+Neuilly;;https://fr.acuitis.com/blogs/nos-boutiques/neuilly-audition;;;;;;;;;;
+Nice Cap 3000;;https://fr.acuitis.com/blogs/nos-boutiques/nice-cap-3000-audition;;;;;;;;;;
+Nice Etoile;;https://fr.acuitis.com/blogs/nos-boutiques/nice-etoile-audition;;;;;;;;;;
+Nice Malaussena;;https://fr.acuitis.com/blogs/nos-boutiques/nice-malaussena-audition;;;;;;;;;;
+Nimes;;https://fr.acuitis.com/blogs/nos-boutiques/nimes-audition;;;;;;;;;;
+Niort;;https://fr.acuitis.com/blogs/nos-boutiques/niort-audition;;;;;;;;;;
+Niort Mendès France;;https://fr.acuitis.com/blogs/nos-boutiques/niort-mendes-france-audition;;;;;;;;;;
+Nogent Sur Marne;;https://fr.acuitis.com/blogs/nos-boutiques/nogent-sur-marne-audition;;;;;;;;;;
+Obernai;;https://fr.acuitis.com/blogs/nos-boutiques/obernai-audition;;;;;;;;;;
+Orleans Saran;;https://fr.acuitis.com/blogs/nos-boutiques/orleans-saran-audition;;;;;;;;;;
+Paris General Leclerc;;https://fr.acuitis.com/blogs/nos-boutiques/paris-general-leclerc-audition;;;;;;;;;;
+Paris Italie Deux;;https://fr.acuitis.com/blogs/nos-boutiques/paris-italie-deux-audition;;;;;;;;;;
+Paris Rue De Rennes;;https://fr.acuitis.com/blogs/nos-boutiques/paris-rue-de-rennes-audition;;;;;;;;;;
+Paris Saint Lazare;;https://fr.acuitis.com/blogs/nos-boutiques/paris-saint-lazare-audition;;;;;;;;;;
+Paris Sevres;;https://fr.acuitis.com/blogs/nos-boutiques/paris-sevres-audition;;;;;;;;;;
+Paris Voltaire;;https://fr.acuitis.com/blogs/nos-boutiques/paris-voltaire-audition;;;;;;;;;;
+Pau;;https://fr.acuitis.com/blogs/nos-boutiques/pau-audition;;;;;;;;;;
+Perpignan;;https://fr.acuitis.com/blogs/nos-boutiques/perpignan-audition;;;;;;;;;;
+Perpignan Polygone;;https://fr.acuitis.com/blogs/nos-boutiques/perpignan-polygone-audition;;;;;;;;;;
+Pertuis;;https://fr.acuitis.com/blogs/nos-boutiques/pertuis-audition;;;;;;;;;;
+Poitiers;;https://fr.acuitis.com/blogs/nos-boutiques/poitiers-audition;;;;;;;;;;
+Quimper;;https://fr.acuitis.com/blogs/nos-boutiques/quimper-audition;;;;;;;;;;
+Rambouillet;;https://fr.acuitis.com/blogs/nos-boutiques/rambouillet-audition;;;;;;;;;;
+Reims;;https://fr.acuitis.com/blogs/nos-boutiques/reims-audition;;;;;;;;;;
+Rennes;;https://fr.acuitis.com/blogs/nos-boutiques/rennes-audition;;;;;;;;;;
+Roanne;;https://fr.acuitis.com/blogs/nos-boutiques/roanne-audition;;;;;;;;;;
+Rouen;;https://fr.acuitis.com/blogs/nos-boutiques/rouen-audition;;;;;;;;;;
+Saint Etienne;;https://fr.acuitis.com/blogs/nos-boutiques/saint-etienne-audition;;;;;;;;;;
+Saint Germain En Laye;;https://fr.acuitis.com/blogs/nos-boutiques/saint-germain-en-laye-audition;;;;;;;;;;
+Saint Jean De Vedas;;https://fr.acuitis.com/blogs/nos-boutiques/saint-jean-de-vedas-audition;;;;;;;;;;
+Saint-Magne-de-Castillon;;https://fr.acuitis.com/blogs/nos-boutiques/saint-magne-de-castillon-audition;;;;;;;;;;
+Saint Malo;;https://fr.acuitis.com/blogs/nos-boutiques/saint-malo-audition;;;;;;;;;;
+Saint Maximin;;https://fr.acuitis.com/blogs/nos-boutiques/saint-maximin-audition;;;;;;;;;;
+Saint Maximin La Sainte Baume;;https://fr.acuitis.com/blogs/nos-boutiques/saint-maximin-la-sainte-baume-audition;;;;;;;;;;
+Saint Paul Les Dax;;https://fr.acuitis.com/blogs/nos-boutiques/saint-paul-les-dax-audition;;;;;;;;;;
+Sainte Marie La Reunion;;https://fr.acuitis.com/blogs/nos-boutiques/sainte-marie-la-reunion-audition;;;;;;;;;;
+Sainte Maxime;;https://fr.acuitis.com/blogs/nos-boutiques/sainte-maxime-audition;;;;;;;;;;
+Selestat;;https://fr.acuitis.com/blogs/nos-boutiques/selestat-audition;;;;;;;;;;
+Sens;;https://fr.acuitis.com/blogs/nos-boutiques/sens-audition;;;;;;;;;;
+Strasbourg Arcades;;https://fr.acuitis.com/blogs/nos-boutiques/strasbourg-arcades-audition;;;;;;;;;;
+Strasbourg Les Halles;;https://fr.acuitis.com/blogs/nos-boutiques/strasbourg-les-halles-audition;;;;;;;;;;
+Ternes;;https://fr.acuitis.com/blogs/nos-boutiques/ternes-audition;;;;;;;;;;
+Toulon;;https://fr.acuitis.com/blogs/nos-boutiques/toulon-audition;;;;;;;;;;
+Toulouse;;https://fr.acuitis.com/blogs/nos-boutiques/toulouse-audition;;;;;;;;;;
+Toulouse Capitole;;https://fr.acuitis.com/blogs/nos-boutiques/toulouse-capitole-audition;;;;;;;;;;
+Tours;;https://fr.acuitis.com/blogs/nos-boutiques/tours-audition;;;;;;;;;;
+Val Deurope;;https://fr.acuitis.com/blogs/nos-boutiques/val-deurope-audition;;;;;;;;;;
+Valence;;https://fr.acuitis.com/blogs/nos-boutiques/valence-audition;;;;;;;;;;
+Valenciennes;;https://fr.acuitis.com/blogs/nos-boutiques/valenciennes-audition;;;;;;;;;;
+Vannes;;https://fr.acuitis.com/blogs/nos-boutiques/vannes-audition;;;;;;;;;;
+Varennes Sur Seine;;https://fr.acuitis.com/blogs/nos-boutiques/varennes-sur-seine-audition;;;;;;;;;;
+Vendome;;https://fr.acuitis.com/blogs/nos-boutiques/vendome-audition;;;;;;;;;;
+Verdun;;https://fr.acuitis.com/blogs/nos-boutiques/verdun-audition;;;;;;;;;;
+Vernon;;https://fr.acuitis.com/blogs/nos-boutiques/vernon-audition;;;;;;;;;;
+Versailles;;https://fr.acuitis.com/blogs/nos-boutiques/versailles-audition;;;;;;;;;;
+Vichy;;https://fr.acuitis.com/blogs/nos-boutiques/vichy-audition;;;;;;;;;;
+Vitre;;https://fr.acuitis.com/blogs/nos-boutiques/vitre-audition;;;;;;;;;;
