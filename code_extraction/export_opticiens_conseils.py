@@ -1,18 +1,20 @@
 """
 export_opticiens_conseils.py
 
-Optimisation principale vs version précédente :
-  - Blocage des ressources inutiles via Chrome DevTools Protocol (CDP) :
-    images, fonts, media, feuilles de style, scripts tiers (analytics,
-    CDN Shopify...) ne sont plus téléchargés. On ne charge que le HTML
-    et les scripts strictement nécessaires au rendu du contenu.
-    → Division du temps par page estimée par 3 à 5.
-  - wait_until="domcontentloaded" au lieu de "networkidle" : on n'attend
-    plus que toutes les requêtes réseau soient terminées, juste que le
-    DOM soit prêt.
+Problème précédent : le wait.until() de l'étape 1 (collecte des URLs
+depuis la carte Shopify) timeout sur Render car le store locator JS
+ne se charge pas dans les temps côté serveur.
+
+Solution : on récupère les URLs des boutiques depuis le sitemap Shopify
+avec requests (pas de Selenium, pas de JS), ce qui est instantané et
+fiable. Selenium n'est utilisé que pour le scraping des fiches
+individuelles (nécessaire car le site retourne 403 à requests).
 """
 
 import re
+import xml.etree.ElementTree as ET
+
+import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
@@ -23,28 +25,25 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
-BASE_URL  = "https://www.opticienconseil.fr"
-START_URL = f"{BASE_URL}/a/magasins"
-OUTPUT    = "opticiens_conseils.csv"
+BASE_URL   = "https://www.opticienconseil.fr"
+SITEMAP    = f"{BASE_URL}/sitemap.xml"
+OUTPUT     = "opticiens_conseils.csv"
 
-# Types de ressources à bloquer — on ne garde que "document" et "script"
-# (nécessaires pour le rendu JS du store locator Shopify)
-BLOCKED_RESOURCE_TYPES = {
-    "image", "media", "font", "stylesheet",
-    "texttrack", "manifest", "other",
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    )
 }
 
-# Domaines tiers à bloquer (analytics, CDN images, etc.)
-BLOCKED_DOMAINS = {
-    "cdn.shopify.com",
-    "cdn-gkefn.nitrocdn.com",
-    "googletagmanager.com",
-    "google-analytics.com",
-    "facebook.net",
-    "connect.facebook.net",
-    "static.hotjar.com",
-    "widget.trustpilot.com",
-}
+BLOCKED_DOMAINS = [
+    "*cdn.shopify.com*",
+    "*cdn-gkefn.nitrocdn.com*",
+    "*googletagmanager.com*",
+    "*google-analytics.com*",
+    "*facebook.net*",
+    "*hotjar.com*",
+]
 
 
 def clean_text(text):
@@ -52,6 +51,59 @@ def clean_text(text):
         return ""
     return re.sub(r"\s+", " ", text).strip()
 
+
+# ─────────────────────────────────────────────────────────────
+# ÉTAPE 1 : Collecte des URLs via le sitemap (requests, pas Selenium)
+# ─────────────────────────────────────────────────────────────
+
+def get_boutique_urls() -> list[str]:
+    """Lit le sitemap Shopify et extrait les URLs de boutiques."""
+    session = requests.Session()
+    session.headers.update(HEADERS)
+
+    # Le sitemap principal pointe vers des sous-sitemaps
+    r = session.get(SITEMAP, timeout=20)
+    r.raise_for_status()
+
+    urls = []
+    root = ET.fromstring(r.text)
+    ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
+    # Cherche d'abord les sous-sitemaps (sitemap index)
+    sub_sitemaps = root.findall(".//sm:loc", ns)
+
+    boutique_pattern = re.compile(r"/a/magasins/boutiques/")
+
+    for loc in sub_sitemaps:
+        loc_url = loc.text.strip()
+
+        # Si c'est une URL de boutique directe
+        if boutique_pattern.search(loc_url):
+            urls.append(loc_url)
+            continue
+
+        # Si c'est un sous-sitemap, on le charge
+        if "sitemap" in loc_url.lower() and loc_url.endswith(".xml"):
+            try:
+                sub = session.get(loc_url, timeout=20)
+                sub_root = ET.fromstring(sub.text)
+                for sub_loc in sub_root.findall(".//sm:loc", ns):
+                    sub_url = sub_loc.text.strip()
+                    if boutique_pattern.search(sub_url):
+                        urls.append(sub_url)
+            except Exception as e:
+                print(f"  ⚠ Sous-sitemap ignoré ({loc_url}) : {e}")
+
+    # Déduplique et nettoie
+    urls = sorted(set(
+        u.split("?")[0].split("#")[0] for u in urls
+    ))
+    return urls
+
+
+# ─────────────────────────────────────────────────────────────
+# ÉTAPE 2 : Scraping des fiches avec Selenium
+# ─────────────────────────────────────────────────────────────
 
 def make_driver():
     options = Options()
@@ -61,125 +113,79 @@ def make_driver():
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1280,800")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    # Désactive le chargement d'images au niveau Chrome (en plus du CDP)
     options.add_experimental_option(
         "prefs", {"profile.managed_default_content_settings.images": 2}
     )
     return webdriver.Chrome(options=options)
 
 
-def enable_request_blocking(driver):
-    """Active l'interception réseau via CDP et bloque les ressources inutiles."""
+print("Étape 1 : collecte des URLs via le sitemap…")
+links = get_boutique_urls()
+print(f"→ {len(links)} boutiques trouvées")
+
+if not links:
+    print("❌ Aucune URL trouvée dans le sitemap.")
+else:
+    driver = make_driver()
+
+    # Bloque les ressources inutiles via CDP
     driver.execute_cdp_cmd("Network.enable", {})
-    driver.execute_cdp_cmd("Network.setBlockedURLs", {
-        "urls": [f"*{domain}*" for domain in BLOCKED_DOMAINS]
-    })
+    driver.execute_cdp_cmd("Network.setBlockedURLs", {"urls": BLOCKED_DOMAINS})
 
-
-driver = make_driver()
-enable_request_blocking(driver)
-wait = WebDriverWait(driver, 20)
-
-try:
-    # ─────────────────────────────────────────────────────────
-    # ÉTAPE 1 : Collecte des URLs de boutiques
-    # ─────────────────────────────────────────────────────────
-    print("Ouverture de la page boutiques…")
-    driver.get(START_URL)
-
-    try:
-        wait.until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, 'a[href*="/a/magasins/boutiques/"]')
-            )
-        )
-    except TimeoutException:
-        print("⚠ Timeout : aucun lien de boutique trouvé après 20s.")
-
-    links = set()
-    for el in driver.find_elements(
-        By.CSS_SELECTOR, 'a[href*="/a/magasins/boutiques/"]'
-    ):
-        href = el.get_attribute("href")
-        if href:
-            href = href.split("?")[0].split("#")[0]
-            links.add(href)
-
-    links = sorted(links)
-    print(f"{len(links)} boutiques trouvées")
-
-    # ─────────────────────────────────────────────────────────
-    # ÉTAPE 2 : Scraping de chaque fiche
-    # ─────────────────────────────────────────────────────────
+    wait = WebDriverWait(driver, 20)
     rows = []
 
-    for i, url in enumerate(links, start=1):
-        print(f"[{i}/{len(links)}] {url}")
+    print(f"Étape 2 : scraping des {len(links)} fiches…")
 
-        try:
-            driver.get(url)
+    try:
+        for i, url in enumerate(links, start=1):
+            print(f"[{i}/{len(links)}] {url}")
 
             try:
-                wait.until(
-                    EC.presence_of_element_located((By.TAG_NAME, "h1"))
-                )
-            except TimeoutException:
-                print(f"  ⚠ Timeout sur {url}, on continue")
+                driver.get(url)
 
-            soup = BeautifulSoup(driver.page_source, "html.parser")
+                try:
+                    wait.until(
+                        EC.presence_of_element_located((By.TAG_NAME, "h1"))
+                    )
+                except TimeoutException:
+                    print(f"  ⚠ Timeout sur {url}, on continue")
 
-            data = {
-                "url": url,
-                "nom": "",
-                "adresse": "",
-                "telephone": "",
-                "email": "",
-            }
+                soup = BeautifulSoup(driver.page_source, "html.parser")
 
-            # NOM
-            h1 = soup.find("h1")
-            if h1:
-                data["nom"] = clean_text(h1.get_text())
+                data = {"url": url, "nom": "", "adresse": "", "telephone": "", "email": ""}
 
-            # ADRESSE — lien Google Maps en priorité (contient le CP)
-            maps_link = soup.find(
-                "a", href=lambda h: h and "google.com/maps/dir" in h
-            )
-            if maps_link:
-                data["adresse"] = clean_text(maps_link.get_text(" "))
-            else:
-                address = soup.select_one(".store-address-link p")
-                if address:
-                    data["adresse"] = clean_text(address.get_text(" "))
+                h1 = soup.find("h1")
+                if h1:
+                    data["nom"] = clean_text(h1.get_text())
 
-            # TELEPHONE
-            tel = soup.select_one('a[href^="tel:"]')
-            if tel:
-                data["telephone"] = (
-                    tel.get("data-phone") or clean_text(tel.get_text())
-                )
+                maps_link = soup.find("a", href=lambda h: h and "google.com/maps/dir" in h)
+                if maps_link:
+                    data["adresse"] = clean_text(maps_link.get_text(" "))
+                else:
+                    address = soup.select_one(".store-address-link p")
+                    if address:
+                        data["adresse"] = clean_text(address.get_text(" "))
 
-            # EMAIL
-            email = soup.select_one('a[href^="mailto:"]')
-            if email:
-                data["email"] = (
-                    email.get("data-email")
-                    or email.get("href", "").replace("mailto:", "").strip()
-                )
+                tel = soup.select_one('a[href^="tel:"]')
+                if tel:
+                    data["telephone"] = tel.get("data-phone") or clean_text(tel.get_text())
 
-            rows.append(data)
+                email = soup.select_one('a[href^="mailto:"]')
+                if email:
+                    data["email"] = (
+                        email.get("data-email")
+                        or email.get("href", "").replace("mailto:", "").strip()
+                    )
 
-        except WebDriverException as e:
-            print(f"  ⚠ Erreur WebDriver : {e}")
+                rows.append(data)
 
-finally:
-    driver.quit()
+            except WebDriverException as e:
+                print(f"  ⚠ Erreur WebDriver : {e}")
 
-# ─────────────────────────────────────────────────────────────
-# EXPORT
-# ─────────────────────────────────────────────────────────────
-df = pd.DataFrame(rows)
+    finally:
+        driver.quit()
 
-df.to_csv(OUTPUT, sep=";", encoding="utf-8-sig", index=False)
-
-print(f"\nCSV généré : {OUTPUT}  ({len(df)} boutiques)")
+    df = pd.DataFrame(rows)
+    df.to_csv(OUTPUT, sep=";", encoding="utf-8-sig", index=False)
+    print(f"\nCSV généré : {OUTPUT}  ({len(df)} boutiques)")

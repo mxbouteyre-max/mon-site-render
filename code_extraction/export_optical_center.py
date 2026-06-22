@@ -181,26 +181,29 @@ def fetch_page(page_num: int) -> tuple[int, list[Boutique]]:
 # ── Détection du nombre de pages ──────────────────────────────────────────────
 
 def get_total_pages() -> int:
-    """Récupère le nombre total de pages depuis la page 1."""
+    """Récupère le nombre total de pages.
+
+    La pagination HTML ne montre que 5 liens à la fois (pages N+/-2),
+    donc chercher le max des liens visibles retournerait au plus 5
+    -> ~100 boutiques au lieu de 807. On cherche "1 sur 41" dans le
+    texte de la pagination, avec MAX_PAGES comme valeur de repli.
+    """
     session = get_session()
     try:
         r = session.get(f"{LIST_URL}?page=1", timeout=20)
         r.raise_for_status()
-        soup = BeautifulSoup(r.text, "html.parser")
-        # Cherche "X de N" dans la pagination ou le texte
-        m = re.search(r"de\s+(\d+)\s+(?:page|sur)", soup.get_text())
+        text = BeautifulSoup(r.text, "html.parser").get_text()
+        # "1 sur 41" dans la pagination
+        m = re.search(r"\bsur\s+(\d+)", text)
         if m:
             return int(m.group(1))
-        # Sinon cherche le dernier numéro de page dans les liens de pagination
-        page_links = soup.select("a[href*='?page=']")
-        nums = []
-        for a in page_links:
-            pm = re.search(r"page=(\d+)", a.get("href", ""))
-            if pm:
-                nums.append(int(pm.group(1)))
-        return max(nums) if nums else MAX_PAGES
+        # Repli : total magasins / 20 (arrondi au sup)
+        m2 = re.search(r"(\d+)\s+magasins", text)
+        if m2:
+            return -(-int(m2.group(1)) // 20)
     except Exception:
-        return MAX_PAGES
+        pass
+    return MAX_PAGES
 
 
 # ── Main ────────────────────────────────────────────────────────────────────────
