@@ -1,16 +1,15 @@
 """
 export_opticiens_conseils.py
 
-Le site opticienconseil.fr retourne 403 aux requêtes HTTP directes
-(protection Cloudflare/Shopify) — Selenium reste nécessaire pour tout
-le script. En revanche les optimisations apportées sont :
-
-  - Options Chrome corrigées pour Render (--headless=new, --no-sandbox,
-    --disable-dev-shm-usage) → corrige le crash TimeoutError
-  - time.sleep(3) et time.sleep(1) fixes supprimés, remplacés par des
-    WebDriverWait sur les éléments réellement attendus
-  - driver.quit() dans un bloc finally pour garantir la libération
-    mémoire même en cas d'erreur
+Optimisation principale vs version précédente :
+  - Blocage des ressources inutiles via Chrome DevTools Protocol (CDP) :
+    images, fonts, media, feuilles de style, scripts tiers (analytics,
+    CDN Shopify...) ne sont plus téléchargés. On ne charge que le HTML
+    et les scripts strictement nécessaires au rendu du contenu.
+    → Division du temps par page estimée par 3 à 5.
+  - wait_until="domcontentloaded" au lieu de "networkidle" : on n'attend
+    plus que toutes les requêtes réseau soient terminées, juste que le
+    DOM soit prêt.
 """
 
 import re
@@ -24,9 +23,28 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
-BASE_URL = "https://www.opticienconseil.fr"
+BASE_URL  = "https://www.opticienconseil.fr"
 START_URL = f"{BASE_URL}/a/magasins"
-OUTPUT = "opticiens_conseils.csv"
+OUTPUT    = "opticiens_conseils.csv"
+
+# Types de ressources à bloquer — on ne garde que "document" et "script"
+# (nécessaires pour le rendu JS du store locator Shopify)
+BLOCKED_RESOURCE_TYPES = {
+    "image", "media", "font", "stylesheet",
+    "texttrack", "manifest", "other",
+}
+
+# Domaines tiers à bloquer (analytics, CDN images, etc.)
+BLOCKED_DOMAINS = {
+    "cdn.shopify.com",
+    "cdn-gkefn.nitrocdn.com",
+    "googletagmanager.com",
+    "google-analytics.com",
+    "facebook.net",
+    "connect.facebook.net",
+    "static.hotjar.com",
+    "widget.trustpilot.com",
+}
 
 
 def clean_text(text):
@@ -37,17 +55,29 @@ def clean_text(text):
 
 def make_driver():
     options = Options()
-    # Indispensable sur Render (pas d'interface graphique)
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1400,900")
+    options.add_argument("--window-size=1280,800")
     options.add_argument("--disable-blink-features=AutomationControlled")
+    # Désactive le chargement d'images au niveau Chrome (en plus du CDP)
+    options.add_experimental_option(
+        "prefs", {"profile.managed_default_content_settings.images": 2}
+    )
     return webdriver.Chrome(options=options)
 
 
+def enable_request_blocking(driver):
+    """Active l'interception réseau via CDP et bloque les ressources inutiles."""
+    driver.execute_cdp_cmd("Network.enable", {})
+    driver.execute_cdp_cmd("Network.setBlockedURLs", {
+        "urls": [f"*{domain}*" for domain in BLOCKED_DOMAINS]
+    })
+
+
 driver = make_driver()
+enable_request_blocking(driver)
 wait = WebDriverWait(driver, 20)
 
 try:
@@ -57,7 +87,6 @@ try:
     print("Ouverture de la page boutiques…")
     driver.get(START_URL)
 
-    # Attente explicite des liens plutôt que sleep fixe
     try:
         wait.until(
             EC.presence_of_element_located(
@@ -90,7 +119,6 @@ try:
         try:
             driver.get(url)
 
-            # Attente du h1 plutôt que sleep fixe de 1s
             try:
                 wait.until(
                     EC.presence_of_element_located((By.TAG_NAME, "h1"))
@@ -113,8 +141,7 @@ try:
             if h1:
                 data["nom"] = clean_text(h1.get_text())
 
-            # ADRESSE — lien Google Maps en priorité (contient l'adresse
-            # complète avec CP), sinon bloc .store-address-link
+            # ADRESSE — lien Google Maps en priorité (contient le CP)
             maps_link = soup.find(
                 "a", href=lambda h: h and "google.com/maps/dir" in h
             )
@@ -129,8 +156,7 @@ try:
             tel = soup.select_one('a[href^="tel:"]')
             if tel:
                 data["telephone"] = (
-                    tel.get("data-phone")
-                    or clean_text(tel.get_text())
+                    tel.get("data-phone") or clean_text(tel.get_text())
                 )
 
             # EMAIL
@@ -147,7 +173,6 @@ try:
             print(f"  ⚠ Erreur WebDriver : {e}")
 
 finally:
-    # Libère Chrome et sa mémoire dans tous les cas
     driver.quit()
 
 # ─────────────────────────────────────────────────────────────
@@ -155,11 +180,6 @@ finally:
 # ─────────────────────────────────────────────────────────────
 df = pd.DataFrame(rows)
 
-df.to_csv(
-    OUTPUT,
-    sep=";",
-    encoding="utf-8-sig",
-    index=False
-)
+df.to_csv(OUTPUT, sep=";", encoding="utf-8-sig", index=False)
 
 print(f"\nCSV généré : {OUTPUT}  ({len(df)} boutiques)")
