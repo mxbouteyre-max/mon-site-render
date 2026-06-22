@@ -1,41 +1,48 @@
 """
-Scraper Optical Center v2 - Mode Playwright + interception réseau
-Détecte automatiquement si une API est utilisée, sinon parse le HTML rendu.
+export_optical_center.py
 
-Installation :
-    pip install playwright beautifulsoup4
-    playwright install chromium
+Le script original utilisait Playwright qui ne peut pas fonctionner sur
+Render (binaire Chromium absent, `playwright install` non exécuté).
 
-Usage :
-    python optical_center_scraper_v2.py
+Découverte clé : le store locator d'Optical Center est hébergé sur un
+sous-domaine séparé (opticien.optical-center.fr) en HTML statique paginé
+accessible directement avec requests — aucun navigateur n'est nécessaire.
+
+Structure : https://opticien.optical-center.fr/fr?page=N
+  → 41 pages × ~20 magasins = 807 magasins en France
+
+Approche : requests + BeautifulSoup (parsing HTML) + ThreadPoolExecutor
+(téléchargement parallèle des 41 pages) — léger en mémoire, rapide.
 """
 
 import csv
-import time
 import re
-import json
-import logging
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, fields, astuple
 from typing import Optional
-from playwright.sync_api import sync_playwright, Page, Response
 
-# ── Configuration ─────────────────────────────────────────────────────────────
+import requests
+from bs4 import BeautifulSoup
 
-STORE_LOCATOR_URL = "https://www.optical-center.fr/magasins"
-BASE_URL          = "https://www.optical-center.fr"
-OUTPUT_CSV        = "optical_center_boutiques.csv"
-DELAY             = 1.5   # secondes entre chaque page
-HEADLESS          = True  # False pour voir le navigateur
+# ── Configuration ──────────────────────────────────────────────────────────────
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%H:%M:%S",
-)
-log = logging.getLogger(__name__)
+BASE_URL   = "https://opticien.optical-center.fr"
+LIST_URL   = f"{BASE_URL}/fr"
+OUTPUT_CSV = "optical_center_boutiques.csv"
+MAX_PAGES  = 50   # plafond de sécurité ; on s'arrête dès qu'une page est vide
+MAX_WORKERS = 10  # pages téléchargées en parallèle
 
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "fr-FR,fr;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+}
 
-# ── Modèle ────────────────────────────────────────────────────────────────────
+# ── Modèle ─────────────────────────────────────────────────────────────────────
 
 @dataclass
 class Boutique:
@@ -44,279 +51,203 @@ class Boutique:
     code_postal:  Optional[str]
     ville:        Optional[str]
     telephone:    Optional[str]
-    horaires:     Optional[str]
     statut:       Optional[str]
     type_service: Optional[str]
-    url_page:     Optional[str]
+    url_fiche:    Optional[str]
     url_maps:     Optional[str]
 
+# ── Session HTTP par thread ────────────────────────────────────────────────────
 
-# ── Interception réseau ───────────────────────────────────────────────────────
+_thread_local = threading.local()
 
-intercepted_api_calls: list[dict] = []
+def get_session() -> requests.Session:
+    if not hasattr(_thread_local, "session"):
+        s = requests.Session()
+        s.headers.update(HEADERS)
+        _thread_local.session = s
+    return _thread_local.session
 
-def handle_response(response: Response):
-    """Capture toutes les réponses JSON qui ressemblent à un store locator."""
-    url = response.url
-    content_type = response.headers.get("content-type", "")
-    if "json" not in content_type:
-        return
-    # Filtre les URLs qui semblent liées aux magasins
-    keywords = ["store", "magasin", "location", "boutique", "shop", "loca"]
-    if not any(k in url.lower() for k in keywords):
-        return
-    try:
-        body = response.json()
-        intercepted_api_calls.append({"url": url, "body": body})
-        log.info(f"🔍 API interceptée : {url}")
-    except Exception:
-        pass
+# ── Parsing d'une page ─────────────────────────────────────────────────────────
 
-
-# ── Parsing HTML ──────────────────────────────────────────────────────────────
-
-def parse_html(html: str) -> list[Boutique]:
-    from bs4 import BeautifulSoup
+def parse_page(html: str) -> list[Boutique]:
     soup = BeautifulSoup(html, "html.parser")
     boutiques = []
 
-    items = soup.select("li")
-    for li in items:
-        nom_tag = li.select_one("[data-e2e-location-name]")
-        if not nom_tag:
+    # Chaque magasin est dans un <li> qui contient un <h2> avec le nom
+    for li in soup.select("li"):
+        h2 = li.select_one("h2")
+        if not h2:
             continue
-        nom = nom_tag.get_text(strip=True)
+        nom = h2.get_text(strip=True)
         if not nom:
             continue
 
-        street = li.select_one("[data-e2e-address-street]")
-        city   = li.select_one("[data-e2e-address-city]")
+        # URL fiche
+        lien = li.select_one("a[href^='/'][href*='-optical-center']")
+        url_fiche = (BASE_URL + lien["href"]) if lien else None
 
-        adresse  = street.get_text(strip=True) if street else None
-        ville_raw = city.get_text(strip=True) if city else None
-        code_postal, ville = None, None
-        if ville_raw:
-            m = re.match(r"(\d{5})\s*(.*)", ville_raw)
-            if m:
-                code_postal, ville = m.group(1), m.group(2).strip()
-            else:
-                ville = ville_raw
+        # Adresse — le texte brut du <li>, on nettoie
+        # Structure : nom / adresse ligne 1 / adresse ligne 2 (opt) / CP ville
+        # On reconstruit depuis les lignes de texte du <li>
+        raw_lines = []
+        for child in li.children:
+            text = child.get_text(" ", strip=True) if hasattr(child, "get_text") else str(child).strip()
+            if text and text != nom:
+                raw_lines.append(text)
 
-        tel_tag   = li.select_one("a[href^='tel:']")
-        telephone = tel_tag.get_text(strip=True) if tel_tag else None
+        # Extraction CP + ville depuis le texte brut
+        adresse_full = " ".join(raw_lines)
+        cp_match = re.search(
+            r"\b(\d{5})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ '\-]*?)(?=\s*(?:Ouvert|Fermé|Optique|Service|$))",
+            adresse_full
+        )
+        code_postal = cp_match.group(1) if cp_match else None
+        ville_raw   = cp_match.group(2).strip() if cp_match else None
 
-        status_tag = li.select_one("[class*='status__message']")
-        statut     = status_tag.get_text(strip=True) if status_tag else None
+        # Adresse = tout ce qui précède le CP dans le texte non-h2 du <li>
+        # On prend les spans ou paragraphes d'adresse explicitement
+        adresse_parts = []
+        # Cherche les blocs texte avant le CP
+        if cp_match and cp_match.group(1):
+            before_cp = adresse_full[:adresse_full.find(cp_match.group(1))].strip()
+            # Nettoie les fragments de l'UI (labels, "Appuyer sur...", etc.)
+            before_cp = re.sub(r"Appuyer sur.*?informations", "", before_cp, flags=re.DOTALL)
+            before_cp = re.sub(r"Prendre rendez-vous", "", before_cp)
+            before_cp = re.sub(r"Point de vente\s*:", "", before_cp)
+            before_cp = re.sub(r"\s+", " ", before_cp).strip()
+            # Retire le nom du magasin s'il s'est glissé dedans
+            before_cp = before_cp.replace(nom, "").strip()
+            adresse_parts = [before_cp] if before_cp else []
 
-        type_tag     = li.select_one("[class*='__type']")
-        type_service = type_tag.get_text(strip=True) if type_tag else None
+        adresse = " | ".join(filter(None, adresse_parts)) or None
 
-        horaires_tags = li.select("[class*='hours'] span, [class*='horaire'] span")
-        horaires = " | ".join(t.get_text(strip=True) for t in horaires_tags) or None
+        # Téléphone
+        tel_tag = li.select_one("a[href^='tel:']")
+        telephone = None
+        if tel_tag:
+            telephone = tel_tag.get_text(strip=True)
 
-        lien_tag = li.select_one("a[href*='/magasins/']")
-        url_page = None
-        if lien_tag and lien_tag.get("href"):
-            href = lien_tag["href"]
-            url_page = href if href.startswith("http") else BASE_URL + href
-
+        # URL Google Maps
         maps_tag = li.select_one("a[href*='google.com/maps']")
         url_maps = maps_tag["href"] if maps_tag else None
 
-        boutiques.append(Boutique(
-            nom=nom, adresse=adresse, code_postal=code_postal, ville=ville,
-            telephone=telephone, horaires=horaires, statut=statut,
-            type_service=type_service, url_page=url_page, url_maps=url_maps,
-        ))
+        # Statut (Ouvert / Fermé) et type de service
+        # Ces informations sont en texte libre dans le <li>
+        full_text = li.get_text(" ", strip=True)
+        statut = None
+        if re.search(r"\bOuvert\b", full_text):
+            m = re.search(r"(Ouvert[^|]*?)(?:\s{2,}|Optique|Service)", full_text)
+            statut = m.group(1).strip() if m else "Ouvert"
+        elif re.search(r"\bFermé\b", full_text):
+            statut = "Fermé"
 
-    return boutiques
-
-
-# ── Parsing réponse API (si interceptée) ─────────────────────────────────────
-
-def parse_api_response(body: dict | list) -> list[Boutique]:
-    """
-    Tente de parser une réponse JSON générique de store locator.
-    À affiner selon la vraie structure de l'API.
-    """
-    boutiques = []
-
-    # Cherche une liste dans la réponse
-    items = []
-    if isinstance(body, list):
-        items = body
-    elif isinstance(body, dict):
-        # Clés communes : "results", "stores", "locations", "data", "items"
-        for key in ("results", "stores", "locations", "data", "items", "features"):
-            if key in body and isinstance(body[key], list):
-                items = body[key]
+        type_service = None
+        for t in ["Optique & Audition", "Service à domicile", "Optique"]:
+            if t in full_text:
+                type_service = t
                 break
 
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-
-        def get(*keys):
-            """Cherche une valeur parmi plusieurs clés possibles."""
-            for k in keys:
-                if k in item and item[k]:
-                    return str(item[k])
-                # Cherche dans les sous-dicts courants
-                for sub in ("address", "contact", "properties", "store"):
-                    if sub in item and isinstance(item[sub], dict):
-                        if k in item[sub] and item[sub][k]:
-                            return str(item[sub][k])
-            return None
-
-        nom          = get("name", "storeName", "nom", "title", "label")
-        adresse      = get("address", "street", "address1", "rue", "streetAddress")
-        code_postal  = get("zipCode", "postalCode", "zip", "codePostal", "postcode")
-        ville        = get("city", "ville", "locality", "town")
-        telephone    = get("phone", "tel", "telephone", "phoneNumber")
-        url_page     = get("url", "storeUrl", "link", "href")
-        type_service = get("type", "category", "storeType")
-
         boutiques.append(Boutique(
-            nom=nom, adresse=adresse, code_postal=code_postal, ville=ville,
-            telephone=telephone, horaires=None, statut=None,
+            nom=nom,
+            adresse=adresse,
+            code_postal=code_postal,
+            ville=ville_raw,
+            telephone=telephone,
+            statut=statut,
             type_service=type_service,
-            url_page=url_page if url_page and url_page.startswith("http") else (BASE_URL + url_page if url_page else None),
-            url_maps=None,
+            url_fiche=url_fiche,
+            url_maps=url_maps,
         ))
 
     return boutiques
 
 
-# ── Export CSV ────────────────────────────────────────────────────────────────
+# ── Téléchargement d'une page ──────────────────────────────────────────────────
 
-def export_csv(boutiques: list[Boutique], filepath: str):
-    col_names = [f.name for f in fields(Boutique)]
-    with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.writer(f, delimiter=";", quoting=csv.QUOTE_ALL)
-        writer.writerow(col_names)
-        for b in boutiques:
-            writer.writerow(astuple(b))
-    log.info(f"✅ CSV exporté : {filepath} ({len(boutiques)} boutiques)")
-
-
-# ── Scraping avec Playwright ──────────────────────────────────────────────────
-
-def detect_next_page(page: Page) -> Optional[str]:
-    """Retourne l'URL de la page suivante si elle existe, sinon None."""
+def fetch_page(page_num: int) -> tuple[int, list[Boutique]]:
+    """Télécharge et parse une page. Retourne (page_num, boutiques)."""
+    session = get_session()
+    url = f"{LIST_URL}?page={page_num}"
     try:
-        # Cherche un lien "suivant" ou "next"
-        next_btn = page.query_selector(
-            "a[class*='next'], a[rel='next'], [aria-label*='suivant'], "
-            "[aria-label*='next'], [class*='pagination__next']"
-        )
-        if next_btn:
-            href = next_btn.get_attribute("href")
-            if href:
-                return href if href.startswith("http") else BASE_URL + href
-    except Exception:
-        pass
-    return None
+        r = session.get(url, timeout=20)
+        r.raise_for_status()
+        boutiques = parse_page(r.text)
+        return page_num, boutiques
+    except Exception as e:
+        print(f"  ⚠ Erreur page {page_num} : {e}")
+        return page_num, []
 
 
-def has_more_results(page: Page, prev_count: int) -> bool:
-    """Vérifie s'il y a encore des boutiques non chargées (scroll infini)."""
+# ── Détection du nombre de pages ──────────────────────────────────────────────
+
+def get_total_pages() -> int:
+    """Récupère le nombre total de pages depuis la page 1."""
+    session = get_session()
     try:
-        items = page.query_selector_all("[data-e2e-location-name]")
-        return len(items) > prev_count
+        r = session.get(f"{LIST_URL}?page=1", timeout=20)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+        # Cherche "X de N" dans la pagination ou le texte
+        m = re.search(r"de\s+(\d+)\s+(?:page|sur)", soup.get_text())
+        if m:
+            return int(m.group(1))
+        # Sinon cherche le dernier numéro de page dans les liens de pagination
+        page_links = soup.select("a[href*='?page=']")
+        nums = []
+        for a in page_links:
+            pm = re.search(r"page=(\d+)", a.get("href", ""))
+            if pm:
+                nums.append(int(pm.group(1)))
+        return max(nums) if nums else MAX_PAGES
     except Exception:
-        return False
+        return MAX_PAGES
 
+
+# ── Main ────────────────────────────────────────────────────────────────────────
 
 def main():
-    log.info("🚀 Démarrage du scraper Optical Center v2 (Playwright)...")
+    print("Détection du nombre de pages…")
+    total_pages = get_total_pages()
+    print(f"→ {total_pages} pages détectées")
+
     all_boutiques: list[Boutique] = []
+    seen_urls: set[str] = set()  # déduplication par URL fiche
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=HEADLESS)
-        context = browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            ),
-            locale="fr-FR",
-        )
-        page = context.new_page()
+    print(f"Téléchargement des {total_pages} pages ({MAX_WORKERS} en parallèle)…")
 
-        # Active l'interception réseau
-        page.on("response", handle_response)
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {
+            executor.submit(fetch_page, p): p
+            for p in range(1, total_pages + 1)
+        }
+        for future in as_completed(futures):
+            page_num, boutiques = future.result()
+            new = 0
+            for b in boutiques:
+                key = b.url_fiche or b.nom
+                if key and key not in seen_urls:
+                    seen_urls.add(key)
+                    all_boutiques.append(b)
+                    new += 1
+            print(f"  Page {page_num:3d} → {len(boutiques):2d} boutiques "
+                  f"({new} nouvelles) | total : {len(all_boutiques)}")
 
-        log.info(f"Chargement de {STORE_LOCATOR_URL} ...")
-        page.goto(STORE_LOCATOR_URL, wait_until="networkidle", timeout=30000)
-        time.sleep(2)
+    print(f"\n{'='*50}")
+    print(f"Total : {len(all_boutiques)} boutiques uniques")
 
-        # ── Cas 1 : Une API a été interceptée ────────────────────────────────
-        if intercepted_api_calls:
-            log.info(f"✨ {len(intercepted_api_calls)} appel(s) API intercepté(s) !")
-            log.info("Dump des URLs interceptées :")
-            for call in intercepted_api_calls:
-                log.info(f"  → {call['url']}")
-                # Sauvegarde le JSON brut pour analyse
-                with open("api_response_dump.json", "w", encoding="utf-8") as f:
-                    json.dump(call["body"], f, ensure_ascii=False, indent=2)
-                log.info("    JSON sauvegardé dans api_response_dump.json")
+    if not all_boutiques:
+        print("❌ Aucune boutique récupérée.")
+        return
 
-            # Tente de parser la première réponse API
-            boutiques = parse_api_response(intercepted_api_calls[0]["body"])
-            if boutiques:
-                log.info(f"  → {len(boutiques)} boutiques parsées depuis l'API")
-                all_boutiques.extend(boutiques)
-            else:
-                log.warning("  Parse API a retourné 0 résultats — voir api_response_dump.json")
+    # Export CSV
+    col_names = [f.name for f in fields(Boutique)]
+    with open(OUTPUT_CSV, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f, delimiter=";", quoting=csv.QUOTE_ALL)
+        writer.writerow(col_names)
+        for b in all_boutiques:
+            writer.writerow(astuple(b))
 
-        # ── Cas 2 : Pagination classique ─────────────────────────────────────
-        else:
-            log.info("Pas d'API détectée — parsing HTML page par page...")
-            page_num = 1
-
-            while True:
-                log.info(f"  Page {page_num} : parsing HTML...")
-                html = page.content()
-                boutiques = parse_html(html)
-
-                if not boutiques:
-                    # Essaie de scroller pour déclencher un éventuel lazy load
-                    log.info("  0 boutiques — tentative de scroll...")
-                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                    time.sleep(2)
-                    html = page.content()
-                    boutiques = parse_html(html)
-
-                log.info(f"  → {len(boutiques)} boutiques trouvées")
-                all_boutiques.extend(boutiques)
-
-                # Cherche la page suivante
-                next_url = detect_next_page(page)
-                if not next_url:
-                    log.info("  Fin de la pagination.")
-                    break
-
-                log.info(f"  → Page suivante : {next_url}")
-                time.sleep(DELAY)
-                page.goto(next_url, wait_until="networkidle", timeout=30000)
-                page_num += 1
-
-        browser.close()
-
-    # ── Résumé ────────────────────────────────────────────────────────────────
-    log.info(f"\n{'='*50}")
-    log.info(f"Total boutiques récupérées : {len(all_boutiques)}")
-
-    if all_boutiques:
-        export_csv(all_boutiques, OUTPUT_CSV)
-    else:
-        log.error(
-            "❌ Toujours 0 boutiques.\n"
-            "Pistes :\n"
-            "  1. Ouvre api_response_dump.json pour voir la structure de l'API\n"
-            "  2. Passe HEADLESS=False pour voir ce que charge le navigateur\n"
-            "  3. Le site bloque peut-être les bots — essaie avec un vrai navigateur\n"
-        )
+    print(f"✅ CSV : {OUTPUT_CSV}")
 
 
 if __name__ == "__main__":
