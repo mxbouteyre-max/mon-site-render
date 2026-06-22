@@ -3,11 +3,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import pandas as pd
-import time
 
 BASE_URL = "https://opticduroc.com/boutiques"
 
@@ -16,11 +16,16 @@ BASE_URL = "https://opticduroc.com/boutiques"
 # -------------------------------------------------
 options = Options()
 
-# IMPORTANT :
-# commente cette ligne si problème
-# options.add_argument("--headless")
-
-options.add_argument("--start-maximized")
+# --headless=new est OBLIGATOIRE sur un serveur sans interface graphique
+# (Render, etc.) : sans ça Chrome essaie d'ouvrir une fenêtre et plante
+# au démarrage (SessionNotCreatedException). --no-sandbox et
+# --disable-dev-shm-usage évitent d'autres plantages classiques en
+# environnement conteneurisé.
+options.add_argument("--headless=new")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+options.add_argument("--disable-gpu")
+options.add_argument("--window-size=1400,2000")
 options.add_argument("--disable-blink-features=AutomationControlled")
 
 driver = webdriver.Chrome(options=options)
@@ -29,31 +34,56 @@ print("Ouverture du site...")
 driver.get(BASE_URL)
 
 # -------------------------------------------------
-# Attendre que la page charge
+# Attendre que la liste des boutiques soit chargée
 # -------------------------------------------------
-time.sleep(8)
+# Le plugin WP Store Locator injecte les <li data-store-id="..."> en JS
+# après coup (ils ne sont jamais présents dans le HTML source brut).
+# On attend donc explicitement leur apparition, plutôt qu'une pause fixe
+# arbitraire de 8 secondes qui peut être trop courte ou trop longue
+# selon la latence du jour.
+try:
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "li[data-store-id]"))
+    )
+except TimeoutException:
+    print("⚠ La liste des boutiques n'est pas apparue après 20s — le site a peut-être changé.")
 
 # -------------------------------------------------
-# Scroll progressif
+# Scroll jusqu'à ce que toutes les boutiques soient chargées
 # -------------------------------------------------
-last_height = driver.execute_script("return document.body.scrollHeight")
-
-for _ in range(15):
-
-    driver.execute_script(
-        "window.scrollTo(0, document.body.scrollHeight);"
+# On compare le nombre de <li data-store-id> trouvés plutôt que la
+# hauteur de la page (plus fiable si le site charge par lots en AJAX
+# au scroll) ; on s'arrête dès que ce nombre se stabilise sur deux
+# scrolls consécutifs, sans attendre 2 secondes fixes à chaque fois.
+def count_stores():
+    return driver.execute_script(
+        "return document.querySelectorAll('li[data-store-id]').length;"
     )
 
-    time.sleep(2)
+last_count = count_stores()
+stable_rounds = 0
+MAX_SCROLLS = 30
 
-    new_height = driver.execute_script(
-        "return document.body.scrollHeight"
-    )
+for _ in range(MAX_SCROLLS):
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
-    if new_height == last_height:
-        break
+    try:
+        WebDriverWait(driver, 3).until(
+            lambda d: count_stores() > last_count
+        )
+        new_count = count_stores()
+    except TimeoutException:
+        # aucune nouvelle boutique chargée pendant ce scroll
+        new_count = last_count
 
-    last_height = new_height
+    if new_count == last_count:
+        stable_rounds += 1
+        if stable_rounds >= 2:
+            break
+    else:
+        stable_rounds = 0
+
+    last_count = new_count
 
 # -------------------------------------------------
 # DEBUG
@@ -82,6 +112,16 @@ resultats = []
 for store in stores:
 
     try:
+
+        # -------------------------
+        # STORE ID (identifiant unique du magasin)
+        # -------------------------
+        # C'est l'attribut data-store-id du <li> lui-même qui contient
+        # le véritable identifiant. Le span ".id-store" du template du
+        # site affiche en réalité le numéro de fax (bug du site, le
+        # template Underscore.js le confirme : <span class="id-store">
+        # <%= fax %></span>), donc on ne s'y fie pas pour l'identifiant.
+        store_id = store.get("data-store-id", "")
 
         # -------------------------
         # NOM + URL
@@ -145,16 +185,6 @@ for store in stores:
 
             if ":" in fax_text:
                 fax = fax_text.split(":")[-1].strip()
-
-        # -------------------------
-        # STORE ID
-        # -------------------------
-        store_id = ""
-
-        id_tag = store.select_one(".id-store")
-
-        if id_tag:
-            store_id = id_tag.get_text(strip=True)
 
         resultats.append({
             "store_id": store_id,

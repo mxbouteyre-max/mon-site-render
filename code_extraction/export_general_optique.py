@@ -1,8 +1,9 @@
 import requests
 import pandas as pd
-import time
 import re
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # =====================================================
 # CONFIG
@@ -24,6 +25,26 @@ HEADERS = {
     "referer": "https://www.generale-optique.com/",
     "user-agent": "Mozilla/5.0"
 }
+
+# Nombre de requêtes simultanées. 12 est un bon compromis vitesse/politesse
+# envers l'API GraphQL. En dessous de 8 le gain est limité, au-dessus de 20
+# on risque des erreurs de rate-limiting.
+MAX_WORKERS = 12
+
+# Sauvegarde CSV intermédiaire toutes les N requêtes traitées
+SAVE_EVERY = 50
+
+# Session HTTP par thread (réutilise les connexions TCP/TLS, évite de les
+# rouvrir à chaque requête comme le ferait requests.get() brut)
+_thread_local = threading.local()
+
+
+def get_session():
+    if not hasattr(_thread_local, "session"):
+        _thread_local.session = requests.Session()
+        _thread_local.session.headers.update(HEADERS)
+    return _thread_local.session
+
 
 # =====================================================
 # FORMAT TELEPHONE
@@ -67,10 +88,15 @@ def extract_department(cp):
 
 
 # =====================================================
-# API CALL
+# API CALL (exécuté par les threads)
 # =====================================================
 
 def fetch_stores(lat, lon):
+    """Interroge l'API GraphQL pour une coordonnée et retourne la liste
+    des magasins trouvés. Retourne [] silencieusement en cas d'erreur
+    (réseau, timeout, réponse malformée)."""
+
+    session = get_session()
 
     variables = {
         "input": {
@@ -99,7 +125,7 @@ def fetch_stores(lat, lon):
     }
 
     try:
-        r = requests.get(URL, headers=HEADERS, params=params, timeout=20)
+        r = session.get(URL, params=params, timeout=20)
 
         if r.status_code != 200:
             return []
@@ -113,47 +139,20 @@ def fetch_stores(lat, lon):
             .get("results", [])
         )
 
-    except:
+    except Exception:
         return []
 
 
 # =====================================================
-# GRILLE GEO
+# TRAITEMENT D'UNE ZONE (appelé par chaque thread)
 # =====================================================
 
-coords = []
-
-# France métropolitaine (dense)
-for lat in range(420, 510, 2):
-    for lon in range(-50, 81, 2):
-        coords.append((lat/10, lon/10))
-
-# DOM
-coords += [
-    (16.2650, -61.5510),
-    (14.6415, -61.0242),
-    (4.9224, -52.3135),
-    (-21.1151, 55.5364),
-    (-12.8275, 45.1662),
-]
-
-print("="*60)
-print(f"SCAN {len(coords)} ZONES")
-print("="*60)
-
-# =====================================================
-# SCRAPING
-# =====================================================
-
-stores = {}
-
-for i, (lat, lon) in enumerate(coords, 1):
-
-    print(f"\n[{i}/{len(coords)}] {lat},{lon}")
+def process_zone(lat, lon):
+    """Récupère et normalise les magasins pour une coordonnée.
+    Retourne un dict {globalStoreId: store_data}."""
 
     results = fetch_stores(lat, lon)
-
-    print(f"→ {len(results)} magasins")
+    zone_stores = {}
 
     for s in results:
 
@@ -162,9 +161,7 @@ for i, (lat, lon) in enumerate(coords, 1):
         if not sid:
             continue
 
-        geo = s.get("geoLocation") or {}
-
-        stores[sid] = {
+        zone_stores[sid] = {
 
             # ID
             "code": s.get("code"),
@@ -192,9 +189,7 @@ for i, (lat, lon) in enumerate(coords, 1):
             "province": s.get("province"),
             "country": s.get("country"),
 
-            "departement": extract_department(
-                s.get("postalCode")
-            ),
+            "departement": extract_department(s.get("postalCode")),
 
             # GEO
             "lat": s.get("lat"),
@@ -206,16 +201,83 @@ for i, (lat, lon) in enumerate(coords, 1):
             "phone": format_phone(s.get("phone")),
         }
 
-    print(f"📦 Total unique: {len(stores)}")
+    return zone_stores
 
-    # sauvegarde continue
+
+# =====================================================
+# GRILLE GEO
+# =====================================================
+
+coords = []
+
+# France métropolitaine (dense)
+for lat in range(420, 510, 2):
+    for lon in range(-50, 81, 2):
+        coords.append((lat/10, lon/10))
+
+# DOM
+coords += [
+    (16.2650, -61.5510),
+    (14.6415, -61.0242),
+    (4.9224, -52.3135),
+    (-21.1151, 55.5364),
+    (-12.8275, 45.1662),
+]
+
+print("=" * 60)
+print(f"SCAN {len(coords)} ZONES  |  {MAX_WORKERS} threads simultanés")
+print("=" * 60)
+
+# =====================================================
+# SCRAPING PARALLÉLISÉ
+# =====================================================
+
+stores = {}           # dict global dédupliqué par globalStoreId
+stores_lock = threading.Lock()  # protège les écritures concurrentes
+completed = 0         # compteur de zones traitées (protégé par stores_lock)
+
+
+def save_csv():
+    """Sauvegarde intermédiaire thread-safe (appelée sous stores_lock)."""
     pd.DataFrame(stores.values()).to_csv(
         OUTPUT,
         index=False,
         encoding="utf-8-sig"
     )
 
-    time.sleep(0.15)
+
+with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+
+    futures = {
+        executor.submit(process_zone, lat, lon): (lat, lon)
+        for lat, lon in coords
+    }
+
+    for future in as_completed(futures):
+
+        lat, lon = futures[future]
+
+        try:
+            zone_stores = future.result()
+        except Exception as e:
+            print(f"  ⚠ Erreur sur ({lat},{lon}) : {e}")
+            zone_stores = {}
+
+        with stores_lock:
+            stores.update(zone_stores)
+            completed += 1
+
+            # Affichage de progression
+            if completed % 50 == 0 or completed == len(coords):
+                print(
+                    f"  [{completed}/{len(coords)}]"
+                    f"  zones traitées  |  {len(stores)} magasins uniques"
+                )
+
+            # Sauvegarde intermédiaire toutes les SAVE_EVERY zones
+            if completed % SAVE_EVERY == 0:
+                save_csv()
+                print(f"  💾 Sauvegarde intermédiaire ({len(stores)} magasins)")
 
 
 # =====================================================
@@ -230,8 +292,8 @@ df.to_csv(
     encoding="utf-8-sig"
 )
 
-print("\n" + "="*60)
+print("\n" + "=" * 60)
 print("TERMINÉ")
-print("="*60)
+print("=" * 60)
 print(f"Magasins : {len(df)}")
-print(f"CSV : {OUTPUT}")
+print(f"CSV      : {OUTPUT}")

@@ -3,6 +3,7 @@ gunicorn==23.0.0
 pandas
 openpyxl
 # ── libs pour tes scripts de scraping (adapte selon tes imports) ──
+playright
 selenium
 requests
 beautifulsoup4
