@@ -16,11 +16,12 @@ headers = {
 # Nombre de boutiques visitées en parallèle. 12 est un bon compromis entre
 # vitesse et politesse envers le serveur (au-delà, le gain marginal diminue
 # et le risque de rate-limiting / erreurs augmente).
-MAX_WORKERS = 12
+MAX_WORKERS = 4  # réduit pour éviter le rate-limiting Acuitis (403 au-delà)
 
 # Une session HTTP par thread est créée via threading.local pour réutiliser
 # les connexions TCP/TLS au sein d'un même thread, au lieu d'en ouvrir une
 # nouvelle à chaque requests.get() comme dans la version originale.
+import time
 import threading
 _thread_local = threading.local()
 
@@ -89,6 +90,9 @@ def scrape_boutique(boutique):
     session = get_session()
 
     r = session.get(boutique["url"], timeout=20)
+    # Pause légère pour éviter de déclencher le rate-limiting d'Acuitis.
+    # Avec 4 workers × 0.5s de pause, on reste sous ~8 req/s.
+    time.sleep(0.5)
     soup_b = BeautifulSoup(r.text, "html.parser")
 
     # -------------------------------------------------
