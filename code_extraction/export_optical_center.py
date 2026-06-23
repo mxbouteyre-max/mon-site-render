@@ -53,7 +53,7 @@ class Boutique:
     telephone:    Optional[str]
     statut:       Optional[str]
     type_service: Optional[str]
-    url_fiche:    Optional[str]
+    url:          Optional[str]
     url_maps:     Optional[str]
 
 # ── Session HTTP par thread ────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ def parse_page(html: str) -> list[Boutique]:
 
         # URL fiche
         lien = li.select_one("a[href^='/'][href*='-optical-center']")
-        url_fiche = (BASE_URL + lien["href"]) if lien else None
+        url_fiche = (BASE_URL + lien["href"]) if lien else None  # variable locale
 
         # Adresse — le texte brut du <li>, on nettoie
         # Structure : nom / adresse ligne 1 / adresse ligne 2 (opt) / CP ville
@@ -165,7 +165,7 @@ def parse_page(html: str) -> list[Boutique]:
             telephone=telephone,
             statut=statut,
             type_service=type_service,
-            url_fiche=url_fiche,
+            url=url_fiche,
             url_maps=url_maps,
         ))
 
