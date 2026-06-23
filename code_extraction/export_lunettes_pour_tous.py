@@ -39,33 +39,10 @@ HEADERS = {
 OUTPUT_FILE = Path("lpt_magasins.csv")
 
 FIELDNAMES = [
-    "nom", "adresse", "code_postal", "ville", "pays",
-    "latitude", "longitude", "telephone", "email_sav",
-    "horaires_lundi", "horaires_mardi", "horaires_mercredi",
-    "horaires_jeudi", "horaires_vendredi", "horaires_samedi", "horaires_dimanche",
-    "est_ouvert", "examen_vue_disponible",
-    "siret", "siren", "tva", "url_maps", "url_rdv",
-    "region", "area", "id",
+    "nom", "adresse", "cp", "ville", "pays",
+    "latitude", "longitude", "telephone", "email",
+    "siret", "siren", "region",
 ]
-
-DAY_MAP = {
-    "monday":    "horaires_lundi",
-    "tuesday":   "horaires_mardi",
-    "wednesday": "horaires_mercredi",
-    "thursday":  "horaires_jeudi",
-    "friday":    "horaires_vendredi",
-    "saturday":  "horaires_samedi",
-    "sunday":    "horaires_dimanche",
-}
-
-
-def fmt_hours(day_data):
-    if not day_data:
-        return "fermé"
-    fr = day_data.get("from", "")
-    to = day_data.get("to", "")
-    return f"{fr}-{to}" if fr and to else "fermé"
-
 
 def fetch_shops(url):
     resp = requests.get(url, headers=HEADERS, timeout=20)
@@ -82,10 +59,8 @@ def fetch_shops(url):
 def parse_shop(shop):
     addr  = shop.get("address", {})
     loc   = shop.get("location", {})
-    hours = shop.get("office_hours", {})
 
     row = {
-        "id":          shop.get("_id", ""),
         "nom":         shop.get("name", ""),
         "adresse":     addr.get("street", ""),
         "code_postal": addr.get("zip", ""),
@@ -95,22 +70,10 @@ def parse_shop(shop):
         "longitude":   loc.get("lng", ""),
         "telephone":   shop.get("phone", shop.get("tel", shop.get("phone_number", ""))),
         "email_sav":   shop.get("savEmail", shop.get("email", "")),
-        "est_ouvert":  "Oui" if shop.get("is_open") else "Non",
-        "examen_vue_disponible": "Oui" if shop.get("isEyeExamAvailable") else "Non",
-        "siret":    shop.get("siret", ""),
-        "siren":    shop.get("siren", ""),
-        "tva":      shop.get("vat", ""),
-        "url_maps": shop.get("mapsLink", ""),
-        "url_rdv":  (
-            f"https://rdv.lunettespourtous.com/{shop['site_rdv']}"
-            if shop.get("site_rdv") else ""
-        ),
+        "siret":  shop.get("siret", ""),
+        "siren":  shop.get("siren", ""),
         "region": shop.get("region", ""),
-        "area":   shop.get("area", ""),
     }
-
-    for eng, fr_col in DAY_MAP.items():
-        row[fr_col] = fmt_hours(hours.get(eng))
 
     return row
 

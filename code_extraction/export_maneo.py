@@ -36,11 +36,11 @@ FIELDNAMES = [
     "nom",
     "adresse",
     "complement_adresse",
-    "code_postal",
+    "cp",
     "ville",
     "telephone",
     "email",
-    "url_fiche",
+    "url",
     "url_maps",
 ]
 
@@ -69,7 +69,7 @@ def get_store_urls() -> list[str]:
 
 def parse_store_page(url: str) -> dict:
     row = {f: "" for f in FIELDNAMES}
-    row["url_fiche"] = url
+    row["url"] = url
 
     try:
         resp = requests.get(url, headers=HEADERS, timeout=15)
@@ -134,7 +134,7 @@ def parse_store_page(url: str) -> dict:
                 # Parse CP + Ville (formats: "46000 - CAHORS" ou "46000 CAHORS")
                 m = re.match(r"(\d{5})\s*[-–]?\s*(.+)", cp_ville)
                 if m:
-                    row["code_postal"] = m.group(1)
+                    row["cp"] = m.group(1)
                     row["ville"] = m.group(2).strip()
                 else:
                     row["ville"] = cp_ville
@@ -184,7 +184,7 @@ def main():
     for r in rows[:5]:
         print(
             f"  {r['nom']:<35} | "
-            f"{r['code_postal']} {r['ville']:<18} | "
+            f"{r['cp']} {r['ville']:<18} | "
             f"{r['telephone']:<14} | {r['email']}"
         )
 

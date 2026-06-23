@@ -123,18 +123,14 @@ def parse_store(shop: dict) -> dict:
         "nom":                common.get("newTitle", common.get("title", addr.get("name", ""))),
         "adresse":            addr.get("street", ""),
         "complement_adresse": addr.get("street_extend", ""),
-        "code_postal":        addr.get("zipCode", ""),
+        "cp":        addr.get("zipCode", ""),
         "ville":              addr.get("locality", ""),
         "pays":               addr.get("countryCode", "FR"),
         "latitude":           coords.get("latitude", ""),
         "longitude":          coords.get("longitude", ""),
         "telephone":          phone_d.get("national", card.get("phone", "")),
-        "telephone_e164":     card.get("phone", ""),
         "email":              card.get("email", ""),
-        "url_fiche":          url.get("canonical", ""),
-        "url_doctolib":       appt.get("link", "") if appt.get("isDoctolib") else "",
-        "code_magasin":       common.get("code", ""),
-        "id":                 common.get("id", ""),
+        "url":          url.get("canonical", ""),
     }
 
 
@@ -182,7 +178,7 @@ def main():
     print(f"\n✓ Exporté → {OUTPUT_FILE.resolve()}")
     print("\n--- Aperçu (5 premiers) ---")
     for r in all_rows[:5]:
-        print(f"  [{r['enseigne']:<12}] {r['nom']:<40} | {r['code_postal']} {r['ville']:<15} | {r['telephone']}")
+        print(f"  [{r['enseigne']:<12}] {r['nom']:<40} | {r['cp']} {r['ville']:<15} | {r['telephone']}")
 
 
 if __name__ == "__main__":

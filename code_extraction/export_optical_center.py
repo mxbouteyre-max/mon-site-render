@@ -48,11 +48,9 @@ HEADERS = {
 class Boutique:
     nom:          Optional[str]
     adresse:      Optional[str]
-    code_postal:  Optional[str]
+    cp:  Optional[str]
     ville:        Optional[str]
     telephone:    Optional[str]
-    statut:       Optional[str]
-    type_service: Optional[str]
     url:          Optional[str]
     url_maps:     Optional[str]
 
@@ -160,11 +158,9 @@ def parse_page(html: str) -> list[Boutique]:
         boutiques.append(Boutique(
             nom=nom,
             adresse=adresse,
-            code_postal=code_postal,
+            cp=code_postal,
             ville=ville_raw,
             telephone=telephone,
-            statut=statut,
-            type_service=type_service,
             url=url_fiche,
             url_maps=url_maps,
         ))
@@ -237,7 +233,7 @@ def main():
             page_num, boutiques = future.result()
             new = 0
             for b in boutiques:
-                key = b.url_fiche or b.nom
+                key = b.url or b.nom
                 if key and key not in seen_urls:
                     seen_urls.add(key)
                     all_boutiques.append(b)

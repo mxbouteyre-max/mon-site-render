@@ -208,40 +208,7 @@ def scrape_boutique(boutique):
             latitude = gps_match.group(1)
             longitude = gps_match.group(2)
 
-    # -------------------------------------------------
-    # Horaires JSON
-    # -------------------------------------------------
-
-    horaires = {}
-
-    horaires_script = soup_b.find(
-        "script",
-        id=re.compile("StoreHoursData")
-    )
-
-    if horaires_script:
-
-        try:
-
-            data = json.loads(horaires_script.string)
-
-            horaires = data.get("standard", {})
-
-        except Exception:
-            pass
-
-    # -------------------------------------------------
-    # Mise en forme horaires
-    # -------------------------------------------------
-
-    horaires_str = ""
-
-    for jour, plages in horaires.items():
-
-        if plages:
-            horaires_str += f"{jour}: {' / '.join(plages)} | "
-        else:
-            horaires_str += f"{jour}: fermé | "
+  
 
     # -------------------------------------------------
     # Résultat
@@ -254,7 +221,7 @@ def scrape_boutique(boutique):
         "url": boutique["url"],
 
         "adresse_complete": adresse_complete,
-        "code_postal": code_postal,
+        "cp": code_postal,
         "ville": ville,
         "departement": departement,
 
@@ -266,7 +233,6 @@ def scrape_boutique(boutique):
 
         "google_maps": google_maps,
 
-        "horaires": horaires_str
     }
 
 

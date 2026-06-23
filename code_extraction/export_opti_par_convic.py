@@ -107,13 +107,13 @@ def extract_shops_from_page(url):
             code = span.get("data-code", "")
 
         shop = {
-            "name": text,
-            "phone": phone,
+            "nom": text,
+            "telephone": phone,
             "url": shop_url,
-            "zipcode": zipcode,
-            "city": city,
-            "lat": lat,
-            "lng": lng,
+            "cp": zipcode,
+            "ville": city,
+            "latitude": lat,
+            "longitude": lng,
             "code": code,
         }
 
