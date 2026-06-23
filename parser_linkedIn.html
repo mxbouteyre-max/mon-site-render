@@ -244,7 +244,7 @@ font-size: 16px;}
 <div class="header">
   <div>
     <h1>Alumni <span>Scout</span></h1>
-    <div class="header-sub">Parser de profils LinkedIn · Détection ISO · Usage local uniquement</div>
+    <div class="header-sub">Parser de profils LinkedIn · Usage local uniquement</div>
     <div> <a class="index" href="/">Retour vers la page d'extraction des boutiques</a></div>
   </div>
   <div class="counter-pill" id="counterPill">0 profil</div>
@@ -767,7 +767,6 @@ function parseLinkedInHTML(html, filename) {
     }
   }
 
-  row.iso = iso_found ? 'Oui ✓' : 'Non';
   row._iso_raw = iso_found;
 
   // ── DIPLÔME & ANNÉE ISO ──
@@ -857,10 +856,7 @@ function renderTable() {
       <td>${cell(r.form1_diplome)}</td>
       <td>${cell(r.form1_debut)}</td>
       <td>${cell(r.form1_fin)}</td>
-      <td>${r._iso_raw
-        ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#f0faf4;color:var(--success);border:1px solid #a3d4b5;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;white-space:nowrap">✓ Oui</span>`
-        : `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff5f5;color:#b04040;border:1px solid #f5c0c0;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;white-space:nowrap">✕ Non</span>`
-      }</td>
+
       <td>${r._iso_raw ? cell(r.iso_diplome) : '<span style="color:var(--muted)">—</span>'}</td>
       <td>${r._iso_raw ? cell(r.iso_annee) : '<span style="color:var(--muted)">—</span>'}</td>
       <td>${esc(r.email)}</td>
@@ -882,7 +878,6 @@ function renderTable() {
           <th>Titre de formation</th>
           <th>Début formation</th>
           <th>Fin formation</th>
-          <th style="white-space:nowrap">🔭 ISO</th>
           <th>Diplôme ISO</th>
           <th>Année ISO</th>
           <th>Email</th>
@@ -900,13 +895,13 @@ btnCSV.addEventListener('click', () => {
     'Nom complet', 'Prénom', 'Nom', 'Localisation', 'Ville', 'Région', 'Pays',
     'Enseigne', 'Titre du poste', 'Début poste', 'Fin poste',
     'École', 'Titre de formation', 'Début formation', 'Fin formation',
-    'ISO', 'Diplôme ISO', 'Année ISO', 'Email', 'Profil LinkedIn', 'Fichier source'
+    'Diplôme ISO', 'Année ISO', 'Email', 'Profil LinkedIn', 'Fichier source'
   ];
   const rows = results.map(r => [
     r.nom_complet, r.prenom, r.nom, r.localisation, r.ville, r.region, r.pays,
     r.exp1_entreprise, r.exp1_poste, r.exp1_debut, r.exp1_fin,
     r.form1_ecole, r.form1_diplome, r.form1_debut, r.form1_fin,
-    r.iso, r.iso_diplome, r.iso_annee, r.email, r.linkedin_url, r._source
+    r.iso_diplome, r.iso_annee, r.email, r.linkedin_url, r._source
   ]);
   const escape = v => `"${String(v).replace(/"/g, '""')}"`;
   const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(escape).join(';')).join('\n');
