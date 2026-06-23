@@ -925,6 +925,24 @@ color: #18181b;}
             </div>
           </div>
 
+          <!-- Option 1b : Comportement des lignes absentes du MAJ -->
+          <div class="option-row" id="optionAbsentRow">
+            <div style="display:flex; flex-direction:column; gap:6px; flex:1">
+              <div class="option-label">🏪 Boutiques absentes du fichier MAJ</div>
+              <div class="option-sublabel">Si une boutique du maître n'apparaît pas dans le fichier mis à jour, que faire ?</div>
+              <div style="display:flex; gap:8px; margin-top:4px; flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                  <input type="radio" name="absentMode" value="fermee" checked onchange="onAbsentModeChange()" style="accent-color:var(--green)">
+                  <span><strong>Marquer fermée</strong> — le fichier MAJ est complet</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                  <input type="radio" name="absentMode" value="inchange" onchange="onAbsentModeChange()" style="accent-color:var(--green)">
+                  <span><strong>Laisser inchangé</strong> — le fichier MAJ est partiel</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           <!-- Option 2: Mode opération -->
           <div class="option-row" style="flex-direction:column; gap:8px;">
             <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
@@ -1360,7 +1378,8 @@ function runMerge() {
     });
 
     if(!urow){
-      out.update = 'fermée';
+      const absentMode = document.querySelector('input[name="absentMode"]:checked')?.value || 'fermee';
+      out.update = absentMode === 'fermee' ? 'fermée' : 'inchangé';
       out.date_maj = '';
     } else if(out.__updCols__.length>0){
       out.update = 'maj';
