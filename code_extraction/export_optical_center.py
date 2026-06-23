@@ -121,11 +121,21 @@ def parse_page(html: str) -> list[Boutique]:
 
         adresse = " | ".join(filter(None, adresse_parts)) or None
 
-        # Téléphone
+        # Téléphone — on extrait depuis href (tel:+33XXXXXXXXX) plutôt que
+        # depuis le texte visible qui contient "Appeler le point de vente X au..."
         tel_tag = li.select_one("a[href^='tel:']")
         telephone = None
         if tel_tag:
-            telephone = tel_tag.get_text(strip=True)
+            raw = tel_tag.get("href", "").replace("tel:", "").strip()
+            if raw:
+                # Normalise +33XXXXXXXXX → 0X XX XX XX XX
+                digits = re.sub(r"\D", "", raw)
+                if digits.startswith("33") and len(digits) == 11:
+                    digits = "0" + digits[2:]
+                if len(digits) == 10:
+                    telephone = " ".join(digits[i:i+2] for i in range(0, 10, 2))
+                else:
+                    telephone = raw
 
         # URL Google Maps
         maps_tag = li.select_one("a[href*='google.com/maps']")
