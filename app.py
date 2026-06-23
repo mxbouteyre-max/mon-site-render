@@ -345,6 +345,8 @@ def api_download(filename):
 
 
 # ── télécharger tous les résultats fusionnés en un xlsx ─────────────
+# ?mode=single  → tout dans une seule feuille (concaténation)
+# ?mode=multi   → une feuille par fichier (défaut)
 @app.route("/api/download_all")
 def api_download_all():
     try:
@@ -354,6 +356,8 @@ def api_download_all():
         from openpyxl.utils import get_column_letter
     except ImportError:
         return jsonify({"error": "pandas/openpyxl non installés"}), 500
+
+    mode = request.args.get("mode", "multi")  # "single" ou "multi"
 
     files = sorted([
         f for f in glob.glob(os.path.join(SCRIPTS_DIR, "*"))
@@ -369,46 +373,78 @@ def api_download_all():
     header_fill  = PatternFill("solid", start_color="1F4E79")
     center_align = Alignment(horizontal="center", vertical="center")
 
-    for filepath in files:
-        sheet_name = os.path.basename(filepath)
-        for ext in DATA_EXTENSIONS:
-            sheet_name = sheet_name.replace(ext, "")
-        sheet_name = sheet_name[:31]
-
-        try:
-            if filepath.endswith(".xlsx"):
-                df = pd.read_excel(filepath)
-            elif filepath.endswith(".tsv"):
-                df = pd.read_csv(filepath, sep="\t", encoding="utf-8-sig", on_bad_lines="skip")
-            else:
-                df = _read_csv_robust(filepath)
-        except Exception as e:
-            ws = wb.create_sheet(sheet_name)
-            ws["A1"] = f"Erreur de lecture : {e}"
-            continue
-
-        df = harmonize_columns(df)
-
-        ws = wb.create_sheet(sheet_name)
-
+    def _write_sheet(ws, df):
         for col_idx, col_name in enumerate(df.columns, 1):
             cell = ws.cell(row=1, column=col_idx, value=str(col_name))
             cell.font      = header_font
             cell.fill      = header_fill
             cell.alignment = center_align
-
         for row_idx, row in enumerate(df.itertuples(index=False), 2):
             for col_idx, value in enumerate(row, 1):
                 ws.cell(row=row_idx, column=col_idx, value=value)
-
         for col_idx, col_name in enumerate(df.columns, 1):
             max_len = max(
                 len(str(col_name)),
                 df.iloc[:, col_idx - 1].astype(str).str.len().max() if len(df) else 0
             )
             ws.column_dimensions[get_column_letter(col_idx)].width = min(max_len + 4, 60)
-
         ws.freeze_panes = "A2"
+
+    def _read_file(filepath):
+        if filepath.endswith(".xlsx"):
+            return pd.read_excel(filepath)
+        elif filepath.endswith(".tsv"):
+            return pd.read_csv(filepath, sep="\t", encoding="utf-8-sig", on_bad_lines="skip")
+        else:
+            return _read_csv_robust(filepath)
+
+    if mode == "single":
+        # ── Mode feuille unique : concat de tous les fichiers ──────────────
+        dfs = []
+        for filepath in files:
+            try:
+                df = _read_file(filepath)
+                df = harmonize_columns(df)
+                # Ajoute une colonne fichier_source si elle n'existe pas
+                if "fichier_source" not in df.columns:
+                    df.insert(0, "fichier_source", os.path.basename(filepath))
+                dfs.append(df)
+            except Exception as e:
+                # Crée une ligne d'erreur pour ne pas perdre la trace
+                dfs.append(pd.DataFrame([{"fichier_source": os.path.basename(filepath),
+                                           "erreur": str(e)}]))
+
+        if not dfs:
+            return jsonify({"error": "Aucune donnée lisible"}), 404
+
+        df_all = pd.concat(dfs, ignore_index=True, sort=False)
+
+        # Réordonne selon REFERENCE_COLUMNS pour les colonnes connues
+        ref_cols = [c for c in REFERENCE_COLUMNS if c in df_all.columns]
+        other_cols = [c for c in df_all.columns if c not in ref_cols]
+        df_all = df_all[ref_cols + other_cols]
+
+        ws = wb.create_sheet("Données compilées")
+        _write_sheet(ws, df_all)
+
+    else:
+        # ── Mode multi-feuilles (comportement original) ─────────────────────
+        for filepath in files:
+            sheet_name = os.path.basename(filepath)
+            for ext in DATA_EXTENSIONS:
+                sheet_name = sheet_name.replace(ext, "")
+            sheet_name = sheet_name[:31]
+
+            try:
+                df = _read_file(filepath)
+            except Exception as e:
+                ws = wb.create_sheet(sheet_name)
+                ws["A1"] = f"Erreur de lecture : {e}"
+                continue
+
+            df = harmonize_columns(df)
+            ws = wb.create_sheet(sheet_name)
+            _write_sheet(ws, df)
 
     if not wb.sheetnames:
         return jsonify({"error": "Aucune donnée lisible"}), 404
@@ -418,10 +454,11 @@ def api_download_all():
     buf.seek(0)
 
     date_str = datetime.now().strftime("%Y-%m-%d")
+    suffix = "_compile" if mode == "single" else ""
     return send_file(
         buf,
         as_attachment=True,
-        download_name=f"collecte_{date_str}.xlsx",
+        download_name=f"collecte_{date_str}{suffix}.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 

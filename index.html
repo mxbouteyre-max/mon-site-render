@@ -591,9 +591,21 @@ header {
       <div class="stat">En cours <b class="run" id="stRun">0</b></div>
       <div class="bot-sep"></div>
       <div class="elapsed" id="elapsed"></div>
-      <button class="btn-export" id="btnExport" onclick="downloadAll()" style="display:none">
-        ↓ &nbsp;Télécharger les données (.xlsx)
-      </button>
+      <div id="exportGroup" style="display:none;align-items:center;gap:8px">
+        <!-- Toggle feuille unique / multi-feuilles -->
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-muted);font-family:var(--mono)">
+          <span>multi</span>
+          <div id="sheetToggle" onclick="toggleSheetMode()"
+               title="Basculer feuille unique / multi-feuilles"
+               style="width:32px;height:17px;border-radius:9px;background:rgba(63,185,80,.2);border:1px solid rgba(63,185,80,.4);cursor:pointer;position:relative;transition:.2s;flex-shrink:0">
+            <div id="sheetThumb" style="position:absolute;top:2px;left:17px;width:11px;height:11px;border-radius:50%;background:var(--green);transition:.2s"></div>
+          </div>
+          <span id="sheetModeLabel" style="color:var(--green)">unique</span>
+        </div>
+        <button class="btn-export" id="btnExport" onclick="downloadAll()">
+          ↓ &nbsp;Télécharger les données (.xlsx)
+        </button>
+      </div>
     </div>
 
   </main>
@@ -754,7 +766,7 @@ async function runAll() {
   document.getElementById('stOk').textContent  = '0';
   document.getElementById('stErr').textContent = '0';
   document.getElementById('stRun').textContent = '0';
-  document.getElementById('btnExport').style.display = 'none';
+  document.getElementById('exportGroup').style.display = 'none';
   document.getElementById('btnRun').disabled = true;
   document.getElementById('btnStop').classList.add('show');
   document.getElementById('progFill').classList.add('live');
@@ -822,7 +834,7 @@ async function runAll() {
   document.getElementById('btnRun').disabled = selected.size === 0;
   document.getElementById('progFill').classList.remove('live');
   if (!stopReq) {
-    document.getElementById('btnExport').style.display = 'flex';
+    document.getElementById('exportGroup').style.display = 'flex';
     cprint('sys', `✔ Terminé — ${ok} succès, ${err} erreur(s)`);
   }
   renderList();
@@ -891,11 +903,22 @@ function requestStop() { stopReq = true; }
 // ═══════════════════════════════════════════
 //  TÉLÉCHARGEMENT DES DONNÉES
 // ═══════════════════════════════════════════
+let sheetMode = 'single'; // 'single' ou 'multi'
+
+function toggleSheetMode() {
+  sheetMode = sheetMode === 'multi' ? 'single' : 'multi';
+  const isSingle = sheetMode === 'single';
+  document.getElementById('sheetThumb').style.left  = isSingle ? '17px' : '2px';
+  document.getElementById('sheetThumb').style.background = isSingle ? 'var(--green)' : 'var(--text-muted)';
+  document.getElementById('sheetToggle').style.background = isSingle ? 'rgba(63,185,80,.2)' : 'var(--surface2)';
+  document.getElementById('sheetToggle').style.borderColor = isSingle ? 'rgba(63,185,80,.4)' : 'var(--border)';
+  document.getElementById('sheetModeLabel').style.color = isSingle ? 'var(--green)' : 'var(--text-muted)';
+}
+
 async function downloadAll() {
-  cprint('sys', '↓ Préparation du fichier de données…');
-  // Le serveur fusionne tous les CSV/XLSX produits en un seul xlsx
+  cprint('sys', `↓ Préparation du fichier de données (mode : ${sheetMode === 'single' ? 'feuille unique' : 'multi-feuilles'})…`);
   const a = document.createElement('a');
-  a.href = `${API}/api/download_all`;
+  a.href = `${API}/api/download_all?mode=${sheetMode}`;
   a.download = '';
   a.click();
   cprint('sys', '↓ Téléchargement lancé');
