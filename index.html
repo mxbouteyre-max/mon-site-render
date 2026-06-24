@@ -816,14 +816,15 @@ function updateCount() {
 }
 
 function fmtSeconds(totalSec) {
-  const h   = Math.floor(totalSec / 3600);
-  const m   = Math.floor((totalSec % 3600) / 60);
-  const s   = Math.round(totalSec % 60);
-  const hh  = String(h).padStart(2,'0');
-  const mm  = String(m).padStart(2,'0');
-  const ss  = String(s).padStart(2,'0');
-  return `${hh}H ${mm}MIN ${ss}SEC`;
+  const total = Math.floor(totalSec);
+  const h  = Math.floor(total / 3600);
+  const m  = Math.floor((total % 3600) / 60);
+  const s  = total % 60;
+  return `${String(h).padStart(2,'0')}H ${String(m).padStart(2,'0')}MIN ${String(s).padStart(2,'0')}SEC`;
 }
+
+let estTotal    = 0;
+let estTimer_id = null;
 
 function updateEstTimer() {
   const queue = getQueue();
@@ -834,9 +835,43 @@ function updateEstTimer() {
     label.textContent = '—';
     return;
   }
-  const total = queue.reduce((acc, name) => acc + (SCRIPT_TIMES[name] || 60), 0);
+  estTotal = queue.reduce((acc, name) => acc + (SCRIPT_TIMES[name] || 60), 0);
   el.classList.add('active');
-  label.textContent = fmtSeconds(total);
+  label.textContent = fmtSeconds(estTotal);
+}
+
+function startEstChrono() {
+  if (estTimer_id) clearInterval(estTimer_id);
+  const el    = document.getElementById('estTimer');
+  const label = document.getElementById('estTime');
+  const t0est = Date.now();
+  el.classList.add('active');
+
+  estTimer_id = setInterval(() => {
+    const elapsed   = (Date.now() - t0est) / 1000;
+    const remaining = estTotal - elapsed;
+
+    if (remaining > 0) {
+      const pct = remaining / estTotal;
+      el.style.borderColor = pct < 0.2 ? 'rgba(227,179,65,.5)' : 'rgba(88,166,255,.35)';
+      el.style.background  = pct < 0.2 ? 'var(--amber-dim)' : 'var(--accent-dim)';
+      label.style.color    = pct < 0.2 ? 'var(--amber)' : 'var(--accent)';
+      label.textContent    = fmtSeconds(Math.ceil(remaining));
+    } else {
+      el.style.borderColor = 'rgba(248,81,73,.5)';
+      el.style.background  = 'var(--red-dim)';
+      label.style.color    = 'var(--red)';
+      label.textContent    = '+' + fmtSeconds(Math.floor(-remaining));
+    }
+  }, 500);
+}
+
+function stopEstChrono() {
+  if (estTimer_id) { clearInterval(estTimer_id); estTimer_id = null; }
+  const el = document.getElementById('estTimer');
+  el.style.borderColor = '';
+  el.style.background  = '';
+  document.getElementById('estTime').style.color = '';
 }
 
 // ═══════════════════════════════════════════
@@ -880,17 +915,23 @@ async function runAll() {
   document.getElementById('progFill').classList.add('live');
   document.getElementById('consoleEmpty').style.display = 'none';
 
+  // Sauvegarder le temps estimé AVANT de changer les états
+  estTotal = queue.reduce((acc, name) => acc + (SCRIPT_TIMES[name] || 60), 0);
+
   // Reset states
   queue.forEach(n => { scriptState[n] = 'wait'; });
   renderList();
 
-  // Timer
+  // Timer elapsed (bottom bar)
   t0 = Date.now();
   timer = setInterval(() => {
     const s = Math.floor((Date.now() - t0) / 1000);
     document.getElementById('elapsed').textContent =
       `⏱ ${Math.floor(s/60)}m ${(s%60).toString().padStart(2,'0')}s`;
   }, 500);
+
+  // Chrono estimé (sidebar)
+  startEstChrono();
 
   setProgress(0, `0 / ${queue.length}`);
   cprint('sys', `▶ Démarrage — ${queue.length} script(s) en file`);
@@ -937,6 +978,8 @@ async function runAll() {
 
   // FIN
   clearInterval(timer);
+  stopEstChrono();
+  updateEstTimer(); // remet le temps estimé statique
   running = false;
   document.getElementById('btnStop').classList.remove('show');
   document.getElementById('btnRun').disabled = selected.size === 0;
