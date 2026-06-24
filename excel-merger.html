@@ -1653,57 +1653,51 @@ function doExportHighlight(btn){
   const hlColor = HIGHLIGHT_COLORS[selectedColorIdx];
   const fgHex = hlColor.hex.replace('#','');
 
-  let wb, ws;
-
-  if(keepFormat && mainWb){
-    // Clone original sheet for format preservation
-    const mainSheetName = mainWb.SheetNames[0];
-    wb = XLSX.utils.book_new();
-    const origWs = mainWb.Sheets[mainSheetName];
-    ws = Object.assign({}, origWs);
-    if(ws['!ref']) {
-      // Apply highlight fill on matched rows
-      merged.forEach((row, ri) => {
-        if(row.__matched__){
-          cols.forEach((col, ci) => {
-            const cellRef = XLSX.utils.encode_cell({r: ri+1, c: ci});
-            if(!ws[cellRef]) ws[cellRef] = {};
-            if(!ws[cellRef].s) ws[cellRef].s = {};
-            ws[cellRef].s.fgColor = { rgb: fgHex };
-            ws[cellRef].s.patternType = 'solid';
-          });
-        }
-      });
-    }
-    XLSX.utils.book_append_sheet(wb, ws, 'Surlignage');
-  } else {
-    // Build fresh sheet with highlight styles
-    const rows = merged.map(r=>{
-      const o={};
-      cols.forEach(c=>{ o[c]=r[c]!==undefined?r[c]:''; });
-      return o;
-    });
-
-    wb = XLSX.utils.book_new();
-    ws = XLSX.utils.json_to_sheet(rows, {header:cols});
-
-    // Apply cell styles for highlighted rows
-    merged.forEach((row, ri) => {
-      if(row.__matched__){
-        cols.forEach((col, ci) => {
-          const cellRef = XLSX.utils.encode_cell({r: ri+1, c: ci});
-          if(!ws[cellRef]) ws[cellRef] = {};
-          if(!ws[cellRef].s) ws[cellRef].s = {};
-          ws[cellRef].s.fgColor = { rgb: fgHex };
-          ws[cellRef].s.patternType = 'solid';
-          ws[cellRef].s.fill = { patternType:'solid', fgColor:{ rgb: fgHex } };
-        });
-      }
-    });
-    XLSX.utils.book_append_sheet(wb, ws, 'Surlignage');
+  // Style de remplissage au format attendu par SheetJS
+  function makeHlStyle(existingStyle) {
+    const base = existingStyle ? JSON.parse(JSON.stringify(existingStyle)) : {};
+    base.fill = { patternType: 'solid', fgColor: { rgb: fgHex }, bgColor: { indexed: 64 } };
+    return base;
   }
 
-  XLSX.writeFile(wb,'fichier_surligne.xlsx',{bookType:'xlsx',type:'binary', cellStyles:true});
+  const wb = XLSX.utils.book_new();
+  let ws;
+
+  if(keepFormat && mainWb){
+    // Deep-clone de la feuille originale pour préserver les styles existants
+    const origWs = mainWb.Sheets[mainWb.SheetNames[0]];
+    ws = {};
+    Object.keys(origWs).forEach(k => {
+      if(k === '!ref' || k === '!cols' || k === '!rows' || k === '!merges'){
+        ws[k] = origWs[k];
+      } else {
+        // Deep-clone chaque cellule
+        ws[k] = JSON.parse(JSON.stringify(origWs[k]));
+      }
+    });
+  } else {
+    // Feuille construite depuis les données fusionnées
+    const rows = merged.map(r => {
+      const o = {};
+      cols.forEach(c => { o[c] = r[c] !== undefined ? r[c] : ''; });
+      return o;
+    });
+    ws = XLSX.utils.json_to_sheet(rows, { header: cols });
+  }
+
+  // Application du surlignage sur les lignes matchées
+  merged.forEach((row, ri) => {
+    if(row.__matched__) {
+      cols.forEach((col, ci) => {
+        const cellRef = XLSX.utils.encode_cell({ r: ri + 1, c: ci });
+        if(!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
+        ws[cellRef].s = makeHlStyle(ws[cellRef].s);
+      });
+    }
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Surlignage');
+  XLSX.writeFile(wb, 'fichier_surligne.xlsx', { bookType: 'xlsx', type: 'binary', cellStyles: true });
   btn.innerHTML='✅ Téléchargé !';
   btn.disabled=false;
   setTimeout(()=>{ btn.innerHTML='⬇ Télécharger avec surlignage (.xlsx)'; },3500);
