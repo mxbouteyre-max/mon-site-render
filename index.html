@@ -458,6 +458,39 @@ header {
 }
 .sp-icon { font-size: 28px; opacity: .25; }
 
+
+/* ── TIMER ESTIMÉ ── */
+.est-timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0 14px 10px;
+  transition: .2s;
+}
+.est-timer.active {
+  border-color: rgba(88,166,255,.35);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.est-timer .et-label { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; }
+.est-timer .et-time  { font-weight: 600; font-size: 13px; }
+.limit-warn {
+  font-size: 10px;
+  color: var(--amber);
+  text-align: center;
+  margin: 0 14px 4px;
+  display: none;
+}
+.limit-warn.show { display: block; }
+
 .compilation {color:white;
   font-family:var(--mono);
   background-color: #3d99f0;
@@ -534,8 +567,7 @@ header {
     </div>
 
     <div class="sb-actions">
-      <button class="btn-xs" onclick="selAll()">Tout cocher</button>
-      <button class="btn-xs" onclick="selNone()">Tout décocher</button>
+      <button class="btn-xs" onclick="selNone()" style="grid-column:span 2">Tout décocher</button>
       <button class="btn-xs" onclick="init()" style="grid-column:span 2">↻ Rafraîchir la liste</button>
     </div>
 
@@ -547,6 +579,11 @@ header {
     </div>
 
     <div class="sb-footer">
+      <div class="est-timer" id="estTimer">
+        <span class="et-label">Temps estimé</span>
+        <span class="et-time" id="estTime">—</span>
+      </div>
+      <div class="limit-warn" id="limitWarn">⚠ Maximum 10 scripts sélectionnés</div>
       <div class="sel-count"><b id="selN">0</b> script(s) sélectionné(s)</div>
       <button class="btn-run" id="btnRun" disabled onclick="runAll()">▶ &nbsp;Lancer</button>
       <button class="btn-stop" id="btnStop" onclick="requestStop()">■ &nbsp;Arrêter</button>
@@ -616,6 +653,44 @@ header {
 //  CONFIG
 // ═══════════════════════════════════════════
 const API = '';  // chemin relatif — fonctionne en local ET sur Render
+
+// ═══════════════════════════════════════════
+//  TEMPS ESTIMÉS (secondes)
+// ═══════════════════════════════════════════
+const SCRIPT_TIMES = {
+  "export_grandOptical.py":           171.95,
+  "export_acuitis.py":                138.86,
+  "export_afflelou.py":                42.39,
+  "export_atol.py":                    88.37,
+  "export_auchan.py":                  46.88,
+  "export_bordelaise_de_lunetterie.py":79.32,
+  "export_boutiques_indep.py":        279.16,
+  "export_concept_optique.py":          6.37,
+  "export_direct_optic.py":             6.06,
+  "export_duroc.py":                  117.67,
+  "export_ecouter_voir.py":           139.01,
+  "export_edgard_opticiens.py":         5.75,
+  "export_eyes_like.py":               34.30,
+  "export_general_optique.py":        117.85,
+  "export_jimmy_fairly.py":             7.46,
+  "export_krys.py":                   425.96,
+  "export_leclerc.py":                 52.97,
+  "export_les_opticiens_lunetiers.py":232.81,
+  "export_lissac.py":                  31.91,
+  "export_lunettes_pour_tous.py":       3.22,
+  "export_lynx_optique.py":             4.60,
+  "export_maneo.py":                  129.94,
+  "export_marc_le_bihan.py":           18.64,
+  "export_opti_par_conviction.py":     63.12,
+  "export_optic_2000.py":             193.60,
+  "export_optical_center.py":          39.54,
+  "export_opticiens_conseils.py":      37.74,
+  "export_optique_lafayette.py":      114.62,
+  "export_visuals.py":                225.59,
+};
+
+const MAX_SELECTION = 10;
+
 
 // ═══════════════════════════════════════════
 //  STATE
@@ -737,6 +812,31 @@ function updateCount() {
   document.getElementById('progInfo').innerHTML = running
     ? `Exécution en cours…`
     : `En attente — <span>${n}</span> script(s) sélectionné(s)`;
+  updateEstTimer();
+}
+
+function fmtSeconds(totalSec) {
+  const h   = Math.floor(totalSec / 3600);
+  const m   = Math.floor((totalSec % 3600) / 60);
+  const s   = Math.round(totalSec % 60);
+  const hh  = String(h).padStart(2,'0');
+  const mm  = String(m).padStart(2,'0');
+  const ss  = String(s).padStart(2,'0');
+  return `${hh}H ${mm}MIN ${ss}SEC`;
+}
+
+function updateEstTimer() {
+  const queue = getQueue();
+  const el    = document.getElementById('estTimer');
+  const label = document.getElementById('estTime');
+  if (!queue.length) {
+    el.classList.remove('active');
+    label.textContent = '—';
+    return;
+  }
+  const total = queue.reduce((acc, name) => acc + (SCRIPT_TIMES[name] || 60), 0);
+  el.classList.add('active');
+  label.textContent = fmtSeconds(total);
 }
 
 // ═══════════════════════════════════════════
@@ -744,10 +844,18 @@ function updateCount() {
 // ═══════════════════════════════════════════
 function toggle(name) {
   if (running) return;
-  selected.has(name) ? selected.delete(name) : selected.add(name);
+  if (selected.has(name)) {
+    selected.delete(name);
+  } else {
+    if (selected.size >= MAX_SELECTION) {
+      document.getElementById('limitWarn').classList.add('show');
+      setTimeout(() => document.getElementById('limitWarn').classList.remove('show'), 2500);
+      return;
+    }
+    selected.add(name);
+  }
   renderList();
 }
-function selAll()  { scripts.forEach(s => selected.add(s.name)); renderList(); }
 function selNone() { selected.clear(); renderList(); }
 function getQueue() {
   return scripts.filter(s => selected.has(s.name)).map(s => s.name);
@@ -917,11 +1025,25 @@ function toggleSheetMode() {
 
 async function downloadAll() {
   cprint('sys', `↓ Préparation du fichier de données (mode : ${sheetMode === 'single' ? 'feuille unique' : 'multi-feuilles'})…`);
-  const a = document.createElement('a');
-  a.href = `${API}/api/download_all?mode=${sheetMode}`;
-  a.download = '';
-  a.click();
-  cprint('sys', '↓ Téléchargement lancé');
+  try {
+    const resp = await fetch(`${API}/api/download_all?mode=${sheetMode}`);
+    if (!resp.ok) throw new Error('Erreur serveur');
+    const blob = await resp.blob();
+    const cd   = resp.headers.get('Content-Disposition') || '';
+    const nameMatch = cd.match(/filename[^;=\n]*=(?:[\'""]?)([^\'\";\n]+)/i);
+    const fname = nameMatch ? nameMatch[1].trim() : `collecte.xlsx`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname; a.click();
+    URL.revokeObjectURL(url);
+    cprint('sys', '↓ Téléchargement lancé');
+    // Suppression des fichiers en mémoire serveur après téléchargement
+    await fetch(`${API}/api/clear_outputs`, { method: 'POST' });
+    cprint('sys', '🗑 Données supprimées du serveur');
+    document.getElementById('exportGroup').style.display = 'none';
+  } catch(e) {
+    cprint('err', `✗ Erreur lors du téléchargement : ${e.message}`);
+  }
 }
 
 // ═══════════════════════════════════════════

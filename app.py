@@ -466,3 +466,18 @@ def api_download_all():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8765))
     app.run(host="0.0.0.0", port=port, debug=False)
+
+# ── suppression des fichiers de résultats après téléchargement ────────────────
+@app.route("/api/clear_outputs", methods=["POST"])
+def api_clear_outputs():
+    deleted = []
+    errors  = []
+    files = glob.glob(os.path.join(SCRIPTS_DIR, "*"))
+    for f in files:
+        if os.path.basename(f).endswith(DATA_EXTENSIONS):
+            try:
+                os.remove(f)
+                deleted.append(os.path.basename(f))
+            except Exception as e:
+                errors.append({"file": os.path.basename(f), "error": str(e)})
+    return jsonify({"ok": True, "deleted": deleted, "errors": errors})
