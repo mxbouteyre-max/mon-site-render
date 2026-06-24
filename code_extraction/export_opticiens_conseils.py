@@ -24,26 +24,39 @@ HEADERS = {
     "Accept-Language": "fr-FR,fr;q=0.9",
 }
 
-# ─── Liste des boutiques (à compléter si nouvelles ouvertures) ────────────────
+BASE = "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-"
+
+# ─── Liste complète des 27 boutiques ─────────────────────────────────────────
 BOUTIQUE_URLS = [
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-evry",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-sainte-genevieve-des-bois",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-ris-orangis",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-les-ulis",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-bretigny-sur-orge",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-osny",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-corbeil-essonnes",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-massy",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-neuilly-sur-seine",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-saint-quentin-en-yvelines",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-belle-epine",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-villabe",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-boulogne-billancourt",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-antony",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-plaisir",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-savigny-sur-orge",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-tours",
-    "https://www.opticienconseil.fr/a/magasins/boutiques/les-opticiens-conseils-villeneuve-la-garenne",
+    # Île-de-France
+    BASE + "antony",
+    BASE + "belle-epine",
+    BASE + "boulogne-billancourt",
+    BASE + "bretigny-sur-orge",
+    BASE + "cergy",
+    BASE + "corbeil-essonnes",
+    BASE + "evry",
+    BASE + "flins-sur-seine",
+    BASE + "les-ulis",
+    BASE + "massy",
+    BASE + "neuilly-sur-seine",
+    BASE + "osny",
+    BASE + "paris-rivoli",
+    BASE + "plaisir",
+    BASE + "ris-orangis",
+    BASE + "sainte-genevieve-des-bois",
+    BASE + "saint-germain-en-laye",
+    BASE + "saint-quentin-en-yvelines",
+    BASE + "savigny-sur-orge",
+    BASE + "villabe",
+    BASE + "villebon-sur-yvette",
+    BASE + "villeneuve-la-garenne",
+    BASE + "viry-chatillon",
+    # Hors Île-de-France
+    BASE + "barentin",
+    BASE + "rouen-gros-horloge",
+    BASE + "tours",
+    BASE + "villeneuve-dascq",
 ]
 
 
@@ -53,20 +66,15 @@ BOUTIQUE_URLS = [
 def format_phone(phone):
     if not phone:
         return ""
-
     phone = re.sub(r"[^\d+]", "", str(phone))
-
     prefixes = ["+33", "+262", "+590", "+594", "+596", "+687", "+689"]
     for prefix in prefixes:
         if phone.startswith(prefix):
             phone = "0" + phone[len(prefix):]
             break
-
     digits = re.sub(r"\D", "", phone)
-
     if len(digits) % 2 == 0:
         return " ".join(digits[i:i+2] for i in range(0, len(digits), 2))
-
     return digits
 
 
@@ -98,21 +106,14 @@ def clean_text(text):
 # EXTRACTION CP + VILLE depuis adresse brute
 # ---------------------------------------------------
 def parse_cp_ville(adresse):
-    """
-    Tente d'extraire le CP et la ville depuis une chaîne d'adresse.
-    Ex: "Centre Commercial Evry 2, Evry, Île-de-France, 91000, France"
-    """
     cp_match = re.search(r"\b(\d{5})\b", adresse)
     cp = cp_match.group(1) if cp_match else ""
-
     ville = ""
     if cp_match:
-        # on prend le token juste avant le CP
         avant_cp = adresse[:cp_match.start()].rstrip(", ")
         tokens = [t.strip() for t in avant_cp.split(",") if t.strip()]
         if tokens:
             ville = tokens[-1]
-
     return cp, ville
 
 
