@@ -95,7 +95,7 @@ session = requests.Session()
 
 for city, lat, lon in SEARCH_POINTS:
 
-    print(f"\nSearching around {city}")
+    print(f"\nRecherche autour de {city}")
 
     offset = 0
     total_count = None
@@ -146,7 +146,7 @@ for city, lat, lon in SEARCH_POINTS:
         )
 
         if response.status_code != 200:
-            print(f"ERROR {response.status_code}")
+            print(f"ERREUR {response.status_code}")
             break
 
         data = response.json()
@@ -158,11 +158,11 @@ for city, lat, lon in SEARCH_POINTS:
                 {}
             ).get("count", 0)
 
-            print(f"Total announced stores: {total_count}")
+            print(f"Total magasins annoncés : {total_count}")
 
         items = data.get("items", [])
 
-        print(f"Offset {offset} -> {len(items)} stores")
+        print(f"Offset {offset} -> {len(items)} magasins")
 
         if not items:
             break
@@ -174,7 +174,7 @@ for city, lat, lon in SEARCH_POINTS:
         )
 
         if page_signature in seen_pages:
-            print("Repeated page detected -> stopping")
+            print("Page répétée détectée -> arrêt")
             break
 
         seen_pages.add(page_signature)
@@ -204,22 +204,22 @@ for city, lat, lon in SEARCH_POINTS:
                 "code": store["common"].get("code"),
 
                 # nom
-                "name": store["common"].get("title"),
+                "nom": store["common"].get("title"),
 
                 # contact
                 "email": card.get("email"),
-                "phone": format_phone(
+                "telephone": format_phone(
                     card.get("phone")
                 ),
 
                 # adresse
-                "street": address.get("street"),
-                "zip_code": zip_code,
-                "department": extract_department(
+                "adresse": address.get("street"),
+                "code_postal": zip_code,
+                "departement": extract_department(
                     zip_code
                 ),
-                "city": address.get("locality"),
-                "country": address.get("countryCode"),
+                "ville": address.get("locality"),
+                "pays": address.get("countryCode"),
 
                 # géoloc
                 "latitude": coords.get("latitude"),
@@ -248,7 +248,7 @@ df = pd.DataFrame(stores.values())
 # sécurité finale anti doublons
 df = df.drop_duplicates(subset=["id"])
 
-print(f"\nTotal unique stores: {len(df)}")
+print(f"\nTotal magasins uniques : {len(df)}")
 
 df.to_csv(
     "krys_stores.csv",
@@ -256,4 +256,4 @@ df.to_csv(
     encoding="utf-8-sig"
 )
 
-print("\nCSV exported : krys_stores.csv")
+print("\nCSV exporté : krys_stores.csv")

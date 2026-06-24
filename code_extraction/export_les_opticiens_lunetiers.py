@@ -140,14 +140,11 @@ def extract_store(item: dict) -> dict:
         "longitude":        coords.get("longitude", ""),
         "adresse":          addr_fields.get("street", ""),
         "complement":       addr_fields.get("street_extend", ""),
-        "code_postal":      addr_fields.get("zipCode", ""),
+        "cp":      addr_fields.get("zipCode", ""),
         "ville":            addr_fields.get("locality", ""),
         "pays":             addr_fields.get("countryCode", ""),
-        "adresse_complete": " | ".join(l for l in addr_lines if l),
         "telephone":        phone_nat,
-        "telephone_e164":   phone_e164,
         "email":            email,
-        "services":         services,
     }
 
 

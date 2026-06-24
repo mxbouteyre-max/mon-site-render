@@ -61,13 +61,10 @@ class Boutique:
     id:           Optional[str]
     nom:          Optional[str]
     adresse:      Optional[str]
-    code_postal:  Optional[str]
+    cp:  Optional[str]
     ville:        Optional[str]
     telephone:    Optional[str]
-    note:         Optional[str]
-    nb_avis:      Optional[str]
-    statut:       Optional[str]
-    url_boutique: Optional[str]
+    url: Optional[str]
 
 
 # ── Formatage téléphone ───────────────────────────────────────────────────────
@@ -134,9 +131,8 @@ def parse_items(html: str) -> list[Boutique]:
 
         boutiques.append(Boutique(
             id=article_id, nom=nom, adresse=adresse,
-            code_postal=code_postal, ville=ville,
-            telephone=telephone, note=note, nb_avis=nb_avis,
-            statut=statut, url_boutique=url_boutique,
+            cp=code_postal, ville=ville,
+            telephone=telephone, url=url_boutique,
         ))
 
     return boutiques

@@ -52,18 +52,11 @@ class Boutique:
     pays:         Optional[str]
     code:         Optional[str]
     adresse:      Optional[str]
-    code_postal:  Optional[str]
+    cp:  Optional[str]
     ville:        Optional[str]
     latitude:     Optional[str]
     longitude:    Optional[str]
-    lundi:        Optional[str]
-    mardi:        Optional[str]
-    mercredi:     Optional[str]
-    jeudi:        Optional[str]
-    vendredi:     Optional[str]
-    samedi:       Optional[str]
-    dimanche:     Optional[str]
-    url_boutique: Optional[str]
+    url: Optional[str]
 
 
 # ── Parsing ───────────────────────────────────────────────────────────────────
@@ -119,18 +112,11 @@ def parse_geojson(geojson: dict, france_only: bool = True) -> list[Boutique]:
             pays=pays,
             code=props.get("code", ""),
             adresse=adresse_raw,
-            code_postal=cp,
+            cp=cp,
             ville=ville,
             latitude=str(coords[1]) if coords[1] else None,
             longitude=str(coords[0]) if coords[0] else None,
-            lundi=format_horaire(oh.get("monday", "")),
-            mardi=format_horaire(oh.get("tuesday", "")),
-            mercredi=format_horaire(oh.get("wednesday", "")),
-            jeudi=format_horaire(oh.get("thursday", "")),
-            vendredi=format_horaire(oh.get("friday", "")),
-            samedi=format_horaire(oh.get("saturday", "")),
-            dimanche=format_horaire(oh.get("sunday", "")),
-            url_boutique=url_boutique,
+            url=url_boutique,
         ))
 
     return boutiques
@@ -193,7 +179,7 @@ def main():
         # Aperçu des 3 premières
         log.info("\n── Aperçu ──────────────────────────────────")
         for b in boutiques[:3]:
-            log.info(f"  {b.nom} | {b.adresse} | Lun-Sam: {b.lundi}")
+            log.info(f"  {b.nom} | {b.adresse} ")
     else:
         log.warning("Aucune boutique française trouvée.")
 
