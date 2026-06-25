@@ -239,6 +239,10 @@ def index():
 def information():
     return send_from_directory(".", "information.html")
 
+@app.route("/video_utilisation_site.mp4")
+def video_tuto():
+    return send_from_directory(".", "video_utilisation_site.mp4")
+
 @app.route("/excel-merger.html")
 def excel_merger():
     return send_from_directory(".", "excel-merger.html")
