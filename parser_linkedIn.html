@@ -269,6 +269,26 @@ font-size: 16px;}
       </div>
     </div>
 
+    <div>
+      <div class="section-label">Capture rapide</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+        Glisse ce bouton dans ta barre de favoris, puis clique-le sur un profil LinkedIn pour télécharger le HTML instantanément — sans images ni CSS.
+      </div>
+      <a id="bookmarkletLink" href="#" style="
+        display:inline-block;
+        padding: 8px 14px;
+        background: #0a66c2;
+        color: #fff;
+        border-radius: 5px;
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: grab;
+        user-select: none;
+      ">📌 Sauvegarder profil LinkedIn</a>
+    </div>
+
     <div class="actions">
       <button class="btn btn-primary" id="btnParse" disabled>⚡ Analyser les profils</button>
       <button class="btn btn-success" id="btnCSV" disabled>↓ Télécharger CSV</button>
@@ -296,6 +316,41 @@ font-size: 16px;}
 <div class="toast" id="toast"></div>
 
 <script>
+// ─── BOOKMARKLET ──────────────────────────────────────────────────────────
+
+(function() {
+  // Code du bookmarklet : capture le DOM rendu et télécharge un .html léger
+  const bookmarkletCode = `(function(){
+    // Récupère le nom depuis le titre
+    var title = document.title || 'profil_linkedin';
+    var name = title.split('|')[0].trim().replace(/[^a-zA-Z0-9\\u00C0-\\u024F\\s_-]/g,'').trim().replace(/\\s+/g,'_');
+    var filename = (name || 'linkedin') + '.html';
+
+    // Capture le DOM rendu (après JS) — seulement le contenu, pas les ressources
+    var html = '<!DOCTYPE html>\\n'
+      + '<!-- saved from url=(0)' + location.href.length + ')' + location.href + ' -->\\n'
+      + '<html lang="fr">\\n<head>\\n'
+      + '<meta charset="UTF-8"/>\\n'
+      + '<title>' + document.title + '</title>\\n'
+      + '<link rel="canonical" href="' + (document.querySelector('link[rel=canonical]') ? document.querySelector('link[rel=canonical]').href : location.href) + '"/>\\n'
+      + '</head>\\n<body>\\n'
+      + document.body.innerHTML
+      + '\\n</body>\\n</html>';
+
+    var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  })();`;
+
+  const encoded = 'javascript:' + encodeURIComponent(bookmarkletCode);
+  document.getElementById('bookmarkletLink').href = encoded;
+})();
+
 // ─── STATE ────────────────────────────────────────────────────────────────
 let files = [];   // {name, content}
 let results = []; // parsed profiles
