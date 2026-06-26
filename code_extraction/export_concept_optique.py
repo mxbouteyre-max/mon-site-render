@@ -29,7 +29,6 @@ for card in cards:
 
     # Texte brut de la carte
     texte = card.get_text("\n", strip=True)
-
     lignes = [l.strip() for l in texte.split("\n") if l.strip()]
 
     adresse = ""
@@ -67,43 +66,30 @@ for card in cards:
         cp = cp_ville_match.group(1)
         ville = cp_ville_match.group(2).strip()
 
-    # Lien Google Maps
-    google_maps = ""
-
-    maps_link = card.find("a", href=True)
-
-    if maps_link:
-        google_maps = maps_link["href"]
-
     # URL page boutique
-    page_boutique = ""
-
+    url = ""
     lien_boutique = card.find("a", href=True)
 
     if lien_boutique:
         href = lien_boutique["href"]
 
         if "google.com/maps" not in href:
-
             if href.startswith("http"):
-                page_boutique = href
+                url = href
             else:
-                page_boutique = "https://concept-optique.com/" + href.lstrip("/")
+                url = "https://concept-optique.com/" + href.lstrip("/")
 
     boutiques.append({
-        "nom": nom,
-        "adresse": adresse,
-        "code_postal": cp,
-        "ville": ville,
+        "nom":      nom,
+        "adresse":  adresse,
+        "cp":       cp,
+        "ville":    ville,
         "telephone": telephone,
-        "google_maps": google_maps,
-        "page_boutique": page_boutique
+        "url":      url,
     })
 
 # DataFrame
 df = pd.DataFrame(boutiques)
-
-# Suppression doublons éventuels
 df = df.drop_duplicates()
 
 # Export CSV

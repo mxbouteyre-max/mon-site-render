@@ -25,13 +25,8 @@ HEADERS = {
     "user-agent": "Mozilla/5.0"
 }
 
-# nombre de requêtes en parallèle
 MAX_WORKERS = 30
-
-# pause entre deux requêtes faites par UN même worker (politesse API)
 SLEEP_BETWEEN_CALLS = 0.05
-
-# sauvegarde live du CSV toutes les N zones traitées (au lieu de chaque zone)
 SAVE_EVERY = 50
 
 
@@ -40,18 +35,13 @@ SAVE_EVERY = 50
 # =====================================================
 
 def format_phone(phone):
-
     if not phone:
         return ""
-
     digits = re.sub(r"\D", "", str(phone))
-
     if digits.startswith("33"):
         digits = "0" + digits[2:]
-
     if len(digits) == 10:
         return " ".join(digits[i:i+2] for i in range(0, 10, 2))
-
     return digits
 
 
@@ -60,19 +50,14 @@ def format_phone(phone):
 # =====================================================
 
 def extract_department(cp):
-
     if not cp:
         return ""
-
     cp = str(cp)
-
     for dom in ["971", "972", "973", "974", "976"]:
         if cp.startswith(dom):
             return dom
-
     if cp.startswith("20"):
         return "2A/2B"
-
     return cp[:2]
 
 
@@ -110,19 +95,15 @@ def fetch_stores(lat, lon):
 
     try:
         r = requests.get(URL, headers=HEADERS, params=params, timeout=20)
-
         if r.status_code != 200:
             return []
-
         data = r.json()
-
         return (
             data
             .get("data", {})
             .get("filteredResults", {})
             .get("results", [])
         )
-
     except:
         return []
 
@@ -133,7 +114,6 @@ def fetch_stores(lat, lon):
 
 coords = []
 
-# espacement de la grille en dixièmes de degré (ex: 5 = 0.5°, ~50km)
 GRID_STEP = 5
 
 for lat in range(420, 510, GRID_STEP):
@@ -172,58 +152,33 @@ def process_zone(item):
         for s in results:
 
             sid = s.get("globalStoreId")
-
             if not sid:
                 continue
 
             if sid not in stores:
                 new_count += 1
 
-            geo = {
-                "lat": s.get("lat"),
-                "lon": s.get("lon")
-            }
+            cp = s.get("postalCode")
 
             stores[sid] = {
-
-                # IDENTIFIANTS
-                "code": s.get("code"),
-                "globalStoreId": sid,
-                "slug": s.get("slug"),
-
-                # NOM
-                "name": s.get("name"),
-                "shortName": s.get("shortName"),
-
-                # ADRESSE
-                "streetNumber": s.get("streetNumber"),
-                "streetName": s.get("streetName"),
-                "additionalStreetInfo": s.get("additionalStreetInfo"),
-
-                "adresse_complete": " ".join(filter(None, [
-                    str(s.get("streetNumber") or "").strip(),
-                    str(s.get("streetName") or "").strip(),
-                    str(s.get("additionalStreetInfo") or "").strip()
-                ])),
-
-                # LOCALISATION
-                "postalCode": s.get("postalCode"),
-                "town": s.get("town"),
-                "province": s.get("province"),
-                "country": s.get("country"),
-
-                "departement": extract_department(
-                    s.get("postalCode")
-                ),
-
-                # GEO
-                "lat": geo["lat"],
-                "lon": geo["lon"],
-
-                # CONTACT
-                "email": s.get("email"),
-                "phone_raw": s.get("phone"),
-                "phone": format_phone(s.get("phone")),
+                "id":          sid,
+                "code":        s.get("code"),
+                "slug":        s.get("slug"),
+                "nom":         s.get("name"),
+                "adresse":     " ".join(filter(None, [
+                                   str(s.get("streetNumber") or "").strip(),
+                                   str(s.get("streetName") or "").strip(),
+                                   str(s.get("additionalStreetInfo") or "").strip()
+                               ])),
+                "cp":          cp,
+                "ville":       s.get("town"),
+                "region":      s.get("province"),
+                "pays":        s.get("country"),
+                "departement": extract_department(cp),
+                "latitude":    s.get("lat"),
+                "longitude":   s.get("lon"),
+                "telephone":   format_phone(s.get("phone")),
+                "email":       s.get("email"),
             }
 
         total = len(stores)
@@ -242,7 +197,6 @@ with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
 
         print(f"[{i}/{len(coords)}] {lat},{lon} -> {found} magasins ({new_count} nouveaux, {total} total)")
 
-        # sauvegarde live périodique (au lieu de réécrire le CSV à chaque zone)
         if processed % SAVE_EVERY == 0:
             with stores_lock:
                 pd.DataFrame(stores.values()).to_csv(
@@ -258,14 +212,10 @@ with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
 
 df = pd.DataFrame(stores.values())
 
-df.to_csv(
-    OUTPUT,
-    index=False,
-    encoding="utf-8-sig"
-)
+df.to_csv(OUTPUT, index=False, encoding="utf-8-sig")
 
 print("\n" + "=" * 60)
-print("TERMINÉ GRANDOPTICAL")
+print("TERMINE GRANDOPTICAL")
 print("=" * 60)
 print(f"Boutiques : {len(df)}")
 print(f"Fichier : {OUTPUT}")

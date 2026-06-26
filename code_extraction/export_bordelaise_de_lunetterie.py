@@ -20,7 +20,6 @@ response.raise_for_status()
 
 soup = BeautifulSoup(response.text, "html.parser")
 
-# Toutes les boutiques
 boutiques = soup.find_all("article", class_=re.compile("post_card"))
 
 print(f"{len(boutiques)} boutiques trouvées")
@@ -44,13 +43,10 @@ for boutique in boutiques:
         # Téléphone
         tel_tag = boutique.find("p", class_=re.compile("telephone"))
         telephone = tel_tag.get_text(" ", strip=True) if tel_tag else ""
-
-        # Nettoyage téléphone
         telephone = re.sub(r"\s+", " ", telephone).strip()
 
         # URL boutique
         lien_tag = boutique.find("a", href=True)
-
         url_boutique = ""
         if lien_tag:
             url_boutique = urljoin(BASE_URL, lien_tag["href"])
@@ -59,11 +55,6 @@ for boutique in boutiques:
         # Infos supplémentaires dans la page boutique
         # =========================
         email = ""
-        horaires = ""
-        description = ""
-        ville = ""
-        code_postal = ""
-        departement = ""
         latitude = ""
         longitude = ""
 
@@ -80,33 +71,15 @@ for boutique in boutiques:
                     r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
                     texte_page
                 )
-
                 if mail:
                     email = mail.group(0)
 
-                # Horaires
-                horaires_bloc = soup2.find(
-                    string=re.compile("Horaires", re.I)
-                )
-
-                if horaires_bloc:
-                    parent = horaires_bloc.parent
-                    horaires = parent.get_text(" ", strip=True)
-
-                # Description
-                description_tag = soup2.find("div", class_=re.compile("content"))
-                if description_tag:
-                    description = description_tag.get_text(" ", strip=True)
-
                 # Coordonnées GPS
                 html = str(soup2)
-
                 lat_match = re.search(r'"lat"\s*:\s*"?(.*?)"?[,}]', html)
                 lon_match = re.search(r'"lng"\s*:\s*"?(.*?)"?[,}]', html)
-
                 if lat_match:
                     latitude = lat_match.group(1)
-
                 if lon_match:
                     longitude = lon_match.group(1)
 
@@ -116,65 +89,49 @@ for boutique in boutiques:
         # =========================
         # Extraction ville / CP / département
         # =========================
+        code_postal = ""
+        ville = ""
+        departement = ""
 
         cp_match = re.search(r"\b(\d{5})\b", adresse)
-
         if cp_match:
             code_postal = cp_match.group(1)
-
-            # Département = 2 premiers chiffres
             departement = code_postal[:2]
 
-        # Ville = texte après le CP
         ville_match = re.search(r"\b\d{5}\s+(.+)", adresse)
-
         if ville_match:
             ville = ville_match.group(1).strip()
 
         # =========================
         # Ajout dans la liste
         # =========================
-
         data.append({
-            "nom": nom,
-            "adresse": adresse,
-            "code_postal": code_postal,
-            "ville": ville,
+            "nom":        nom,
+            "adresse":    adresse,
+            "cp":         code_postal,
+            "ville":      ville,
             "departement": departement,
-            "telephone": telephone,
-            "email": email,
-            "url_boutique": url_boutique,
-            "horaires": horaires,
-            "description": description,
-            "latitude": latitude,
-            "longitude": longitude
+            "telephone":  telephone,
+            "email":      email,
+            "url":        url_boutique,
+            "latitude":   latitude,
+            "longitude":  longitude
         })
 
         print(f"OK : {nom}")
-
         time.sleep(1)
 
     except Exception as e:
         print(f"Erreur : {e}")
 
 # =========================
-# Création DataFrame
+# Export CSV
 # =========================
-
 df = pd.DataFrame(data)
-
-# =========================
-# Export CSV UTF-8-SIG avec ;
-# =========================
 
 output = "bordelaise_lunetterie_boutiques.csv"
 
-df.to_csv(
-    output,
-    sep=";",
-    index=False,
-    encoding="utf-8-sig"
-)
+df.to_csv(output, sep=";", index=False, encoding="utf-8-sig")
 
 print(f"\nCSV enregistré : {output}")
 print(df.head())
