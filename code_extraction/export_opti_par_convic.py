@@ -40,12 +40,10 @@ def extract_shops_from_page(url):
 
     shops = []
 
-    # liens de la page
     links = soup.find_all("a")
 
     print("LINKS =", len(links))
 
-    # récupération téléphone
     for i, a in enumerate(links):
 
         href = a.get("href", "")
@@ -61,37 +59,35 @@ def extract_shops_from_page(url):
         phone = ""
 
         if i + 1 < len(links):
-
             nxt = links[i + 1]
             nxt_href = nxt.get("href", "")
-
             if nxt_href.startswith("tel:"):
                 phone = nxt_href.replace("tel:", "").strip()
 
         # URL complète
         shop_url = href
-
         if shop_url.startswith("/"):
             shop_url = BASE + shop_url
 
-        # récupération bloc HTML proche
+        # bloc HTML proche
         parent = a.parent
-
         html = parent.get_text(" ", strip=True)
 
         # CP
-        zipcode = ""
-
+        cp = ""
         cp_match = re.search(r"\b\d{5}\b", html)
-
         if cp_match:
-            zipcode = cp_match.group(0)
+            cp = cp_match.group(0)
+
+        # département
+        departement = ""
+        if cp:
+            departement = cp[:2]
 
         # ville
-        city = ""
-
-        if zipcode:
-            city = html.split(zipcode)[-1].strip()
+        ville = ""
+        if cp:
+            ville = html.split(cp)[-1].strip()
 
         # GPS
         lat = ""
@@ -99,25 +95,22 @@ def extract_shops_from_page(url):
         code = ""
 
         span = parent.find_previous("span", attrs={"data-lat": True})
-
         if span:
-
-            lat = span.get("data-lat", "")
-            lng = span.get("data-lng", "")
+            lat  = span.get("data-lat", "")
+            lng  = span.get("data-lng", "")
             code = span.get("data-code", "")
 
-        shop = {
-            "nom": text,
-            "telephone": phone,
-            "url": shop_url,
-            "cp": zipcode,
-            "ville": city,
-            "latitude": lat,
-            "longitude": lng,
-            "code": code,
-        }
-
-        shops.append(shop)
+        shops.append({
+            "nom":         text,
+            "telephone":   phone,
+            "url":         shop_url,
+            "cp":          cp,
+            "ville":       ville,
+            "departement": departement,
+            "latitude":    lat,
+            "longitude":   lng,
+            "code":        code,
+        })
 
     print("FOUND =", len(shops))
 
@@ -136,14 +129,10 @@ def get_city_pages():
     city_urls = set()
 
     for a in soup.find_all("a", href=True):
-
         href = a["href"]
-
         if "/trouver-un-opticien/opticien-a-" in href:
-
             if href.startswith("/"):
                 href = BASE + href
-
             city_urls.add(href)
 
     print("CITY URLS FOUND =", len(city_urls))
@@ -181,24 +170,17 @@ def main():
 
         for shop in shops:
 
-            # doublons
-            unique_key = shop["code"]
-
-            if not unique_key:
-                unique_key = f'{shop["name"]}_{shop["phone"]}'
+            # clé de déduplication : code en priorité, sinon nom + téléphone
+            unique_key = shop["code"] or f'{shop["nom"]}_{shop["telephone"]}'
 
             if unique_key in seen:
                 continue
 
             seen.add(unique_key)
-
             all_shops.append(shop)
-
             new_count += 1
 
-            print(
-                f'NEW => {shop["name"]} | {shop["phone"]}'
-            )
+            print(f'NEW => {shop["nom"]} | {shop["telephone"]}')
 
         print("NEW SHOPS =", new_count)
 

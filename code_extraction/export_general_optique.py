@@ -26,16 +26,9 @@ HEADERS = {
     "user-agent": "Mozilla/5.0"
 }
 
-# Nombre de requêtes simultanées. 12 est un bon compromis vitesse/politesse
-# envers l'API GraphQL. En dessous de 8 le gain est limité, au-dessus de 20
-# on risque des erreurs de rate-limiting.
 MAX_WORKERS = 12
-
-# Sauvegarde CSV intermédiaire toutes les N requêtes traitées
 SAVE_EVERY = 50
 
-# Session HTTP par thread (réutilise les connexions TCP/TLS, évite de les
-# rouvrir à chaque requête comme le ferait requests.get() brut)
 _thread_local = threading.local()
 
 
@@ -51,18 +44,13 @@ def get_session():
 # =====================================================
 
 def format_phone(phone):
-
     if not phone:
         return ""
-
     digits = re.sub(r"\D", "", str(phone))
-
     if digits.startswith("33"):
         digits = "0" + digits[2:]
-
     if len(digits) == 10:
         return " ".join(digits[i:i+2] for i in range(0, 10, 2))
-
     return digits
 
 
@@ -71,31 +59,22 @@ def format_phone(phone):
 # =====================================================
 
 def extract_department(cp):
-
     if not cp:
         return ""
-
     cp = str(cp)
-
     for dom in ["971", "972", "973", "974", "976"]:
         if cp.startswith(dom):
             return dom
-
     if cp.startswith("20"):
         return "2A/2B"
-
     return cp[:2]
 
 
 # =====================================================
-# API CALL (exécuté par les threads)
+# API CALL
 # =====================================================
 
 def fetch_stores(lat, lon):
-    """Interroge l'API GraphQL pour une coordonnée et retourne la liste
-    des magasins trouvés. Retourne [] silencieusement en cas d'erreur
-    (réseau, timeout, réponse malformée)."""
-
     session = get_session()
 
     variables = {
@@ -126,79 +105,53 @@ def fetch_stores(lat, lon):
 
     try:
         r = session.get(URL, params=params, timeout=20)
-
         if r.status_code != 200:
             return []
-
         data = r.json()
-
         return (
             data
             .get("data", {})
             .get("filteredResults", {})
             .get("results", [])
         )
-
     except Exception:
         return []
 
 
 # =====================================================
-# TRAITEMENT D'UNE ZONE (appelé par chaque thread)
+# TRAITEMENT D'UNE ZONE
 # =====================================================
 
 def process_zone(lat, lon):
-    """Récupère et normalise les magasins pour une coordonnée.
-    Retourne un dict {globalStoreId: store_data}."""
-
     results = fetch_stores(lat, lon)
     zone_stores = {}
 
     for s in results:
-
         sid = s.get("globalStoreId")
-
         if not sid:
             continue
 
+        cp = s.get("postalCode")
+
         zone_stores[sid] = {
-
-            # ID
-            "code": s.get("code"),
-            "globalStoreId": sid,
-            "slug": s.get("slug"),
-
-            # NOMS
-            "name": s.get("name"),
-            "shortName": s.get("shortName"),
-
-            # ADRESSE
-            "streetNumber": s.get("streetNumber"),
-            "streetName": s.get("streetName"),
-            "additionalStreetInfo": s.get("additionalStreetInfo"),
-
-            "adresse_complete": " ".join(filter(None, [
-                str(s.get("streetNumber") or "").strip(),
-                str(s.get("streetName") or "").strip(),
-                str(s.get("additionalStreetInfo") or "").strip()
-            ])),
-
-            # LOCALISATION
-            "postalCode": s.get("postalCode"),
-            "town": s.get("town"),
-            "province": s.get("province"),
-            "country": s.get("country"),
-
-            "departement": extract_department(s.get("postalCode")),
-
-            # GEO
-            "lat": s.get("lat"),
-            "lon": s.get("lon"),
-
-            # CONTACT
-            "email": s.get("email"),
-            "phone_raw": s.get("phone"),
-            "phone": format_phone(s.get("phone")),
+            "id":          sid,
+            "code":        s.get("code"),
+            "slug":        s.get("slug"),
+            "nom":         s.get("name"),
+            "adresse":     " ".join(filter(None, [
+                               str(s.get("streetNumber") or "").strip(),
+                               str(s.get("streetName") or "").strip(),
+                               str(s.get("additionalStreetInfo") or "").strip()
+                           ])),
+            "cp":          cp,
+            "ville":       s.get("town"),
+            "region":      s.get("province"),
+            "pays":        s.get("country"),
+            "departement": extract_department(cp),
+            "latitude":    s.get("lat"),
+            "longitude":   s.get("lon"),
+            "telephone":   format_phone(s.get("phone")),
+            "email":       s.get("email"),
         }
 
     return zone_stores
@@ -210,12 +163,10 @@ def process_zone(lat, lon):
 
 coords = []
 
-# France métropolitaine (dense)
 for lat in range(420, 510, 2):
     for lon in range(-50, 81, 2):
         coords.append((lat/10, lon/10))
 
-# DOM
 coords += [
     (16.2650, -61.5510),
     (14.6415, -61.0242),
@@ -225,20 +176,19 @@ coords += [
 ]
 
 print("=" * 60)
-print(f"SCAN {len(coords)} ZONES  |  {MAX_WORKERS} threads simultanés")
+print(f"SCAN {len(coords)} ZONES  |  {MAX_WORKERS} threads simultanees")
 print("=" * 60)
 
 # =====================================================
-# SCRAPING PARALLÉLISÉ
+# SCRAPING PARALLELISE
 # =====================================================
 
-stores = {}           # dict global dédupliqué par globalStoreId
-stores_lock = threading.Lock()  # protège les écritures concurrentes
-completed = 0         # compteur de zones traitées (protégé par stores_lock)
+stores = {}
+stores_lock = threading.Lock()
+completed = 0
 
 
 def save_csv():
-    """Sauvegarde intermédiaire thread-safe (appelée sous stores_lock)."""
     pd.DataFrame(stores.values()).to_csv(
         OUTPUT,
         index=False,
@@ -260,24 +210,22 @@ with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         try:
             zone_stores = future.result()
         except Exception as e:
-            print(f"  ⚠ Erreur sur ({lat},{lon}) : {e}")
+            print(f"  Erreur sur ({lat},{lon}) : {e}")
             zone_stores = {}
 
         with stores_lock:
             stores.update(zone_stores)
             completed += 1
 
-            # Affichage de progression
             if completed % 50 == 0 or completed == len(coords):
                 print(
                     f"  [{completed}/{len(coords)}]"
-                    f"  zones traitées  |  {len(stores)} magasins uniques"
+                    f"  zones traitees  |  {len(stores)} magasins uniques"
                 )
 
-            # Sauvegarde intermédiaire toutes les SAVE_EVERY zones
             if completed % SAVE_EVERY == 0:
                 save_csv()
-                print(f"  💾 Sauvegarde intermédiaire ({len(stores)} magasins)")
+                print(f"  Sauvegarde intermediaire ({len(stores)} magasins)")
 
 
 # =====================================================
@@ -286,14 +234,10 @@ with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
 
 df = pd.DataFrame(stores.values())
 
-df.to_csv(
-    OUTPUT,
-    index=False,
-    encoding="utf-8-sig"
-)
+df.to_csv(OUTPUT, index=False, encoding="utf-8-sig")
 
 print("\n" + "=" * 60)
-print("TERMINÉ")
+print("TERMINE")
 print("=" * 60)
 print(f"Magasins : {len(df)}")
 print(f"CSV      : {OUTPUT}")

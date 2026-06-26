@@ -78,11 +78,10 @@ ENSEIGNE_MAP = {
 
 FIELDNAMES = [
     "enseigne", "nom", "adresse", "complement_adresse",
-    "code_postal", "ville", "pays",
+    "cp", "ville", "pays",
     "latitude", "longitude",
-    "telephone", "telephone_e164", "email",
-    "url_fiche", "url_doctolib",
-    "code_magasin", "id",
+    "telephone", "email",
+    "url",
 ]
 
 
